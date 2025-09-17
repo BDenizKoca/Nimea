@@ -15,6 +15,7 @@
 
         bridge.terrainModule = {
             renderTerrain,
+            hideTerrain,
             getTerrainAsGeoJSON,
         };
 
@@ -41,8 +42,8 @@
                         return { color: "#6a8caf", weight: 3, opacity: 0.8 }; // A solid, thicker blue-grey for roads
                     case 'difficult':
                         return { color: "#a0522d", weight: 2, opacity: 0.7, fillColor: "#a0522d", fillOpacity: 0.2, dashArray: '8, 8' }; // A dashed, earthy brown for difficult terrain
-                    case 'forest':
-                        return { color: "#228B22", weight: 2, opacity: 0.7, fillColor: "#228B22", fillOpacity: 0.3, dashArray: '4, 8' }; // Forest green with different dash pattern
+                    case 'medium':
+                        return { color: "#228B22", weight: 2, opacity: 0.7, fillColor: "#228B22", fillOpacity: 0.3, dashArray: '4, 8' }; // Medium difficulty terrain (engebeli) - forest green with different dash pattern
                     case 'unpassable':
                         return { color: "#c0392b", weight: 2, opacity: 0.8, fillColor: "#c0392b", fillOpacity: 0.4 }; // A bold red for unpassable areas
                     default:
@@ -55,6 +56,13 @@
                 });
             }
         }).addTo(bridge.map);
+    }
+
+    function hideTerrain() {
+        if (terrainLayer && bridge.map.hasLayer(terrainLayer)) {
+            bridge.map.removeLayer(terrainLayer);
+            terrainLayer = null;
+        }
     }
 
     function getTerrainAsGeoJSON() {

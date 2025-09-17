@@ -50,7 +50,7 @@
     const TERRAIN_COSTS = {
         road: 1.0,       // Primary paths: roads are fastest (cost = 1)
         difficult: 5.0,  // Existing difficult terrain (matches DM mode)
-        forest: 3.0,     // New forest terrain type (moderate difficulty)
+        medium: 3.0,     // Medium difficulty terrain (engebeli) - moderate difficulty
         unpassable: 50.0, // High cost but not infinite - allow pathfinding around
         blocked: 50.0,   // High cost but not infinite - allow pathfinding around
         normal: 2.0      // Default fallback terrain for empty areas

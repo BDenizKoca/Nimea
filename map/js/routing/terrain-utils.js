@@ -39,7 +39,7 @@
         
         // Check for difficult terrain types
         const difficultFeatures = terrainFeatures.filter(f => 
-            ['difficult', 'forest'].includes(f.properties.kind)
+            ['difficult', 'medium'].includes(f.properties.kind)
         );
         
         for (const feature of difficultFeatures) {
@@ -80,7 +80,7 @@
         
         // Check for difficult terrain (increases cost)
         const difficultFeatures = terrainFeatures.filter(f => 
-            ['difficult', 'forest'].includes(f.properties.kind)
+            ['difficult', 'medium'].includes(f.properties.kind)
         );
         
         for (const feature of difficultFeatures) {

@@ -90,6 +90,11 @@
             dmModals.setupIconAndBannerModals();
         }
 
+        // Render existing terrain data
+        if (bridge.terrainModule && bridge.terrainModule.renderTerrain) {
+            bridge.terrainModule.renderTerrain();
+        }
+
         // Set up Leaflet-Geoman event listeners
         setupMapEventListeners();
     }
