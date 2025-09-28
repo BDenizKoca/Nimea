@@ -151,8 +151,8 @@
     {
       "id": "ky-kent",
       "name": "kıyı kent",
-      "x": 2084.499884,
-      "y": 785.492198,
+      "x": 2096,
+      "y": 792,
       "type": "city",
       "summary": "kıyı kenti",
       "i18n": {
