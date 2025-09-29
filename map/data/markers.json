@@ -288,6 +288,30 @@
         }
       },
       "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/dukmar.png"
+    },
+    {
+      "id": "silvaron",
+      "name": "Silvaron",
+      "x": 846.3777974901135,
+      "y": 756.9130809624088,
+      "type": "city",
+      "faction": "Silvar Krallığı",
+      "summary": "Eski Yedilerin Kutsal Yedi Kubbeli Kilisesi'nin gün batımında Altun Gölü'nden vuran ışıklar ile ihtişam saçtığı Silvaron, Silvar Krallığı tahtına ve Valdren Yüksek Krallığı tahtına ev sahipliği yapmaktadır. ",
+      "images": [],
+      "public": true,
+      "wikiSlug": "silvaron",
+      "i18n": {
+        "tr": {
+          "name": "Silvaron",
+          "summary": "Eski Yedilerin Kutsal Yedi Kubbeli Kilisesi'nin gün batımında Altun Gölü'nden vuran ışıklar ile ihtişam saçtığı Silvaron, Silvar Krallığı tahtına ve Valdren Yüksek Krallığı tahtına ev sahipliği yapmaktadır. ",
+          "faction": "Silvar Krallığı"
+        },
+        "en": {
+          "name": "Silvaron",
+          "summary": "Silvaron, where the Sacred Seven-Domed Church of the Old Sevens gleams with the radiance of the setting sun reflected upon the Golden Lake, stands as the seat of both the throne of the Kingdom of Silvar and the throne of the High Kingdom of Valdren.",
+          "faction": "Kingdom of Silvar"
+        }
+      }
     }
   ]
 }
