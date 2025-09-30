@@ -4,7 +4,7 @@ name: İskelya
 slug: iskelya
 summary: Silvar Krallığı’nın denize açılan kapısı. Liman zinciri, deniz feneri
   ve tuz havuzlarıyla bilinir.
-cover_image: https://file.garden/aLboplo8eB2dIZKp/Nimea/%C4%B0skelya.png
+cover_image: https://file.garden/aLboplo8eB2dIZKp/Nimea/iskelya.png
 map_id: iskelya
 public: true
 ---
