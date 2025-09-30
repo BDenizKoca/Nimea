@@ -11,7 +11,7 @@ public: true
 ---
 # Pineford
 
-## A Capital by the Lake
+*A Capital by the Lake*
 
 At the northern tip of Lake Altun, beside the Zerdun Forest and encircled by timber walls, stands the city of Pineford. At its very heart rises the Mihver Pine—not just a tree, but the sacred guardian of these people. Through centuries of passing storms, its roots have never dried, nor has its trunk ever bowed. The streets often carry the scent of resin and fresh timber; mornings begin with lake mist, evenings settle with the echo of ritual bells.
 
