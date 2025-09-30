@@ -336,6 +336,31 @@
           "faction": "Kingdom of Silvar"
         }
       }
+    },
+    {
+      "id": "iskelya",
+      "name": "İskelya",
+      "x": 744.75,
+      "y": 896.25,
+      "type": "city",
+      "faction": "Silvar Krallığı",
+      "summary": "Silvar Krallığı’nın denize açılan kapısı. Liman zinciri, deniz feneri ve tuz havuzlarıyla bilinir.",
+      "images": [
+        "https://file.garden/aLboplo8eB2dIZKp/Nimea/iskelya.png"
+      ],
+      "public": true,
+      "i18n": {
+        "tr": {
+          "name": "İskelya",
+          "summary": "Silvar Krallığı’nın denize açılan kapısı. Liman zinciri, deniz feneri ve tuz havuzlarıyla bilinir.",
+          "faction": "Silvar Krallığı"
+        },
+        "en": {
+          "name": "Iskelya",
+          "summary": "The Silvar Kingdom’s gate to the sea. Known for its harbor chain, lighthouse, and salt pans.",
+          "faction": "Kingdom of Silvar"
+        }
+      }
     }
   ]
 }
