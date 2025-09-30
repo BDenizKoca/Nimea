@@ -5,26 +5,34 @@ map_coords:
 layout: base.njk
 name: Çamkale
 slug: camkale
-summary: Mihver Çam.
-cover_image: https://file.garden/aLboplo8eB2dIZKp/ChatGPT%20Image%20Sep%202%2C%202025%2C%2003_50_31%20PM.png
+summary: Altun Gölü kıyısında, Mihver Çam'ın çevresine kurulu ahşap surlu
+  başkent. Çamkale Krallığı'nın kalbi ve kutsal çamın gölgesindeki şehir.
+cover_image: https://file.garden/aLboplo8eB2dIZKp/Nimea/C%CC%A7amkale.jpeg
 map_id: camkale
 public: true
 ---
 # Çamkale
+*Göl Kıyısında Bir Başkent*
 
+Altun Gölü’nün kuzey ucunda, Zerdun Ormanı’na komşu ahşap surlarla çevrili bir şehir yükselir: Çamkale. Kentin tam ortasında duran Mihver Çam, yalnızca bir ağaç değil, aynı zamanda bu halkın kutsal koruyucusudur. Asırlardır gelip geçen fırtınalara rağmen; kökü kurumamış, gövdesi de dimdik ayakta kalmıştır. Şehrin sokaklarını çoğu zaman reçine ve taze odun kokusu doldurur; sabahları göl sisiyle uyanılır, akşamları ise ayin çanlarının yankısıyla geceye geçilir.
 
+## Mihver Çam’ın Gölgesinde Hayat
 
-![](https://file.garden/aLboplo8eB2dIZKp/ChatGPT%20Image%20Sep%202%2C%202025%2C%2003_55_46%20PM.png)
+Her yol Mihver Çam’ın çevresinden geçer. Düğünler de, yeminler de, barışmalar da hep gövdesinin altında olur. Reçinesi, şehrin ticaretinde ve şifa işlerinde kullanılır. Fırtına mevsimi gelip geçtiğinde, seçilen usta demirciler rahipler ile Mihver Çam’ın etrafına sarılan demir-bakır halkaları kontrol eder; her birkaç yılda bir, eskiyen halkalar yenisiyle dikkatlice değiştirilir veya tamir edilir. Bu yalnızca yıldırıma karşı bir tedbir değil, yüzyıllardır süren bir adet olarak görülür. Halka dönümü adıyla bir ayin ve festival olarak kutlanır. 
 
-Çamkale, Arduca’nın doğu kuşağında, **Vorçam Ormanı**’nın kenarında kurulmuş bir hudut kasabasıdır. Büyük Kırılma’dan sonra göçüklerin tehdidine rağmen ayakta kalmış, elflerle insanların birlikte kurduğu nadir yerleşimlerden biridir. Bugün kasaba, **Kral Ervahan** adlı yaşlı bir soylunun yönetimi altındadır. Ervahan, eski Ardun kanının hâlâ yaşadığını iddia eden bir hanedana aittir ve kararlarını çok sayıda danışmanıyla birlikte alır.
+## Evler, Orman ve Günlük İşler
 
-Çamkale’nin adı, merkezindeki devasa **Mihver Çamı**’ndan gelir. Reçinesinin akı’yı yatıştırdığına inanılan bu ağaç, hem elfler hem de insanlar için bir sığınak ve kutsal gövde sayılır. Çamkale’nin nüfusu beş yüze yaklaşır; bunun önemli bir kısmını elf toplulukları oluşturur. Elflerle insanlar, kasabanın taşını ve ağacını birlikte işlemiş, Çamkale’nin surlarını ve evlerini yan yana inşa etmiştir.
+Çamkale’nin evleri kalın gövdeli çamlardan yapılır; çatılar ağırdır, saçakları gölge salar. Dar sokaklar küçük meydanlara, meydanlar ise çoğunlukla pazar yerine açılır. Göl kıyısında ağ atan balıkçılar, reçineyi kaynatan zanaatkarlar ve gece nöbetini devralan korucular bulunur. Ormanda tabela pek yoktur; yolunuzu bulmak için taş işaretlerine ya da göçmenlerin anlattığı masallara güvenirsiniz. Şehrin dışındaki eski hudut taşları, her bahar köylüler tarafından temizlenip yazıları tazelenir.
 
+## Yönetim ve Şehrin İnsanları
 
-![](https://file.garden/aLboplo8eB2dIZKp/ChatGPT%20Image%20Sep%202%2C%202025%2C%2003_57_23%20PM.png)
+Şehir, adını verdiği krallığın başkentidir. Kral Ervahan, yaşlı, ağırbaşlı bir hükümdardır; kararsız değildir ama sözü de aceleye gelmez. Yanında üç danışmanı vardır: yazıcı Larethiel, gözcü Elyne ve reçine işlerinden anlayan Varanor. Kasaba halkı çoğunlukla insanlardan oluşsa da, elf ustalar ve göçmenler her zaman şehre kendi izini bırakmıştır.
 
-## 
-Şehir Yapısı ve Koruluk
+## Gelenekler ve Şehrin Ruhu
 
+Çamkale’de yılın en hareketli zamanı ilkbahardır. Mihver Çam’ın çevresinde gece vakti yapılan fenerli yürüyüş, hem gençlere hem yaşlılara küçük bir neşe vesilesi olur. Açaray ayı gelince Çam Şenliği başlar; ustalar reçinesini, delikanlılar yayını, çocuklar ise sabrını sınar. Ormana giren herkes, elflere özgü bir alışkanlıkla, yanında getirdiği küçük bir çakıl taşına adını fısıldayıp köklerin dibine bırakır.
+Burada insanlar, sabırlı, aklı başında ve yoldaşlık seven kişilerdir. Ne aceleye gelirler, ne de övünmeye. Göl kıyısında ya da orman gölgesinde, çoğu vakit hayat kendi akışında sürer.
 
-Çamkale, yalnızca birkaç ev ve bir çamdan ibaret değildir; Mihver’in gölgesinde **hududu bekleyen bir garnizon ve küçük bir saray** yükselir. Elflerin işçiliğiyle oyulmuş kemerli yapılar ve insanların taş kulübeleri yan yana durur.
+## Çamkale’nin Dertleri ve Umudu
+
+Son yıllarda birkaç yıldırım Mihver Çam’ın alt halkasını eğdi; yenisi için bakır dökümü hazırlanıyor. Ormanda kimi taşların yazısı silinmiş, işaretler kaybolmuş. Gölden gelen garip yankılar bazen yaşlıların uykusunu kaçırır. Fakat şehir hâlâ ayakta; gölgeyi esirgemeyen çam da, sabrıyla yaşayan halk da köklerinden vazgeçmez.
