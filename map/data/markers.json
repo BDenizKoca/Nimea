@@ -55,9 +55,8 @@
       "x": 1529,
       "y": 892,
       "type": "city",
-      "faction": "Bağımsız şehir.",
-      "summary": "Mihver Çam gölgesinde krallık ile yönetilen ülke.",
-      "iconUrl": "https://i.ibb.co/S7JWqkss/camkale.png",
+      "faction": "Çamkale Krallığı",
+      "summary": "Altun Gölü kıyısında, Mihver Çam'ın çevresine kurulu ahşap surlu başkent. Çamkale Krallığı'nın kalbi ve kutsal çamın gölgesindeki şehir.",
       "images": [
         "https://i.ibb.co/qYTjySW0/Chat-GPT-Image-Sep-2-2025-03-50-31-PM.png"
       ],
@@ -66,13 +65,13 @@
       "i18n": {
         "tr": {
           "name": "Çamkale",
-          "summary": "Mihver Çam gölgesinde krallık ile yönetilen ülke.",
-          "faction": "Bağımsız şehir."
+          "summary": "Altun Gölü kıyısında, Mihver Çam'ın çevresine kurulu ahşap surlu başkent. Çamkale Krallığı'nın kalbi ve kutsal çamın gölgesindeki şehir.",
+          "faction": "Çamkale Krallığı"
         },
         "en": {
-          "name": "Camkale",
-          "summary": "A border town under a monarchy in the shadow of the Axis Pine.",
-          "faction": "Independent city"
+          "name": "Mihver Pineford",
+          "summary": "The palisaded capital of the Kingdom of Pineford, built around the sacred pine beside Lake Altun. A city under the shadow of Mihver Pine, heart of the realm.",
+          "faction": "Kingdom of Pineford"
         }
       }
     },
