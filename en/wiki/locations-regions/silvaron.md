@@ -16,7 +16,7 @@ Silvaron stands where Lake Altun narrows into the Erden River—a natural chokep
 With ridgelines to the west and the Arkun Forest to the east, its location is both strategic and beautiful. The city is known for its arched stone bridges, chain towers, and lakeside granaries. From the Crown Square, the morning bell rings out as cranes creak into motion.
 
 ## **The City of the Scales**  
-Each Monday, a new color is stamped onto the market scales. At dawn, the priest of Leksai and the Master Weigher of the Scalewrights’ Guild unlock the Oath Chest together. Merchants bring their weights to be tested and sealed.  
+Each Avgün/Tengün, a new color is stamped onto the market scales. At dawn, the priest of Leksai and the Master Weigher of the Scalewrights’ Guild unlock the Oath Chest together. Merchants bring their weights to be tested and sealed.  
 The market is laid out in a crescent ring. Fraudulent measurements are not tolerated—trust in weights is trust in law. In Silvaron, justice is measured in grams.
 
 ## **In the Shadow of the Domes**  
