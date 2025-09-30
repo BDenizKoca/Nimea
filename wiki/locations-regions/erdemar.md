@@ -13,8 +13,6 @@ public: true
 
 *Erden Gölü’nün karşı kıyısında, pazara açılan uzun iskeleleriyle tanınan Erdemar; balık, tahıl ve kerestenin el değiştirdiği, gölün nabzını tutan canlı bir liman şehridir.*
 
----
-
 ## **Gölün Nabzı**
 
 Erden Gölü’nün karşı yakasında, rüzgâra kapalı doğal bir koyda kurulu Erdemar, göl ticaretinin tam kalbinde yer alır. Silvaron’dan bakınca şehrin taş duvarları ve kiremit çatılı evleri kıyı boyunca bir dizi gibi uzanır. Gün doğarken, göl sisinin arasından yükselen çan sesiyle şehir uyanır; pazara inenler, her sabah gölün üzerinde salınan hafif bir serinlik eşliğinde işine koyulur.
