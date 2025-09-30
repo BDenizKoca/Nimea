@@ -16,7 +16,7 @@ Altun Gölü’nün Erden Irmağı’na açıldığı dar boğazda kurulan Silva
 Taş köprüleri, zincirli kuleleri ve göl kıyısına dizilmiş taş ambarlarıyla tanınır. Taç Meydanı’ndan sabah çanı duyulur, vinçler gün boyu çalışır.
 
 ## **Terazinin Şehri**  
-Silvaron’da her pazartesi yeni bir renk basılır tartıların üzerine. Sabah erkenden, Leksai rahibiyle Terazeciler Loncası ustası birlikte Yemin Sandığı’nı açar. Esnaf kendi terazisini getirir; doğru çıkan ağırlığa o günün rengiyle damga vurulur.  
+Silvaron’da her Avgün/Tengün yeni bir renk basılır tartıların üzerine. Sabah erkenden, Leksai rahibiyle Terazeciler Loncası ustası birlikte Yemin Sandığı’nı açar. Esnaf kendi terazisini getirir; doğru çıkan ağırlığa o günün rengiyle damga vurulur.  
 Pazar çemberi yarımay şeklindedir. Tartıya hile karıştıranın tezgâhı akşama kalmaz kapanır. Şehirde güven, ağırlıkla ölçülür. Teraziye güven duymak, yönetime güvenmektir.
 
 ## **Kubbenin Gölgesi**  
