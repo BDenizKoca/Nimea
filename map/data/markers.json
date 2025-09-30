@@ -311,6 +311,31 @@
         }
       },
       "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/Silvaron.jpeg"
+    },
+    {
+      "id": "erdemar",
+      "name": "Erdemar",
+      "x": 1020.0834737533935,
+      "y": 744.1592602966596,
+      "type": "city",
+      "faction": "Silvar Krallığı",
+      "summary": "Erden Gölü’nün karşı kıyısında, pazara açılan uzun iskeleleriyle tanınan Erdemar; balık, tahıl ve kerestenin el değiştirdiği, gölün nabzını tutan canlı bir liman şehridir.",
+      "images": [
+        "https://file.garden/aLboplo8eB2dIZKp/Nimea/erdemar.png"
+      ],
+      "public": true,
+      "i18n": {
+        "tr": {
+          "name": "Erdemar",
+          "summary": "Erden Gölü’nün karşı kıyısında, pazara açılan uzun iskeleleriyle tanınan Erdemar; balık, tahıl ve kerestenin el değiştirdiği, gölün nabzını tutan canlı bir liman şehridir.",
+          "faction": "Silvar Krallığı"
+        },
+        "en": {
+          "name": "Erdemar",
+          "summary": "Across the lake from Silvaron, Erdemar is known for its long piers and bustling marketplace; a vibrant port city where fish, grain, and timber change hands, and the pulse of the lake is felt.",
+          "faction": "Kingdom of Silvar"
+        }
+      }
     }
   ]
 }
