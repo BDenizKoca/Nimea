@@ -6,6 +6,7 @@ summary: The palisaded capital of the Kingdom of Pineford, built around the
   sacred pine beside Lake Altun. A city under the shadow of Mihver Pine, heart
   of the realm.
 cover_image: https://file.garden/aLboplo8eB2dIZKp/Nimea/C%CC%A7amkale.jpeg
+map_id: camkale
 public: true
 ---
 # Pineford
