@@ -8,7 +8,7 @@
       "type": "city",
       "faction": "Bağımsız şehir",
       "summary": "İki güçlü nehrin birleştiği stratejik bir konumda yer alan, Kral tarafından yönetilen görkemli, kadim bir şehir. Yüksek dağlar kuzeyini korurken, nehirleri ticaretle dolup taşmaktadır.",
-      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/valmoris.png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/valmoriscapitol.png",
       "images": [],
       "public": true,
       "i18n": {
@@ -72,7 +72,8 @@
           "faction": "Kingdom of Pineford"
         }
       },
-      "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/C%CC%A7amkale.jpeg"
+      "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/C%CC%A7amkale.jpeg",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/camkalecapitol.png"
     },
     {
       "id": "custodiskapi",
@@ -129,7 +130,7 @@
       "type": "city",
       "faction": "Serenova Krallığı",
       "summary": "Altın buğday tarlaları arasına kurulmuş, görünüşte pastoral bir şehir olan Serenova, Konfederasyon'un ekmek ambarı ve tarafsızlığın simgesidir. Ancak, müreffeh dış görünüşünün altında, güçlü tüccar aileleri ve gizli loncalar, tahıl akışını kontrol eden ve kaderleri gölgelerden şekillendiren görünmez bir güce sahiptir.",
-      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/serenovamarker.png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/serenovakapitol.png",
       "images": [],
       "public": true,
       "i18n": {
@@ -194,7 +195,7 @@
       "type": "fortress",
       "faction": "Çamkale Krallığı",
       "summary": "Çamkale Krallığı Doğu Karakolu",
-      "iconUrl": "https://i.ibb.co/014fC3M/camkale-kkarakol.png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/camkalesehir.png",
       "images": [],
       "public": true,
       "i18n": {
@@ -219,7 +220,7 @@
       "type": "city",
       "faction": "Taşkan Krallığı",
       "summary": "Dağların zirvesine oyulmuş, sert ve heybetli bir krallık. Güçlü Taşhisar kalesi, dağın kendisinden yontulmuş gibi durur. Taş işçiliğiyle ünlü halkı, dağ geçitlerini koruyan sarp arazide, ticaretle ve sade bir yaşamla var olur. Soğuk ve gururlu görünen bu halk, sabırla çalışır ve kadim geleneklerine bağlıdır.",
-      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/taskanmarker.png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/taskancapitol.png",
       "images": [],
       "public": true,
       "i18n": {
@@ -244,7 +245,7 @@
       "type": "town",
       "faction": "Çamkale Krallığı",
       "summary": "Göl kıyısında, balıkçılık, kereste ve ticaret kasabası. Vali soyu ile yönetiliyor, Çamkale Krallığına bağlı.",
-      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Gemini_Generated_Image_vmyxmxvmyxmxvmyx%20(1)%20(1).png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/camkalesehir.png",
       "images": [
         "https://file.garden/aLboplo8eB2dIZKp/Image_fx.jpg"
       ],
@@ -270,7 +271,7 @@
       "type": "town",
       "faction": "Taşkan Krallığı",
       "summary": "Dağ vadisine kurulmuş, disiplinli bir ortaçağ lonca şehri olan Dukmar, Taş İşçileri Loncası'nın mutlak egemenlik alanıdır. Ustaca düzenlenmiş bu yerleşim, usta taş çıkarımının ve eşsiz zanaatkarlığın merkezidir; Taşkanlıların topraklarını tanımlayan ham maddeleri titizlikle üretir.",
-      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/dukmarmarker.png",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/taskansehir.png",
       "images": [],
       "public": true,
       "i18n": {
@@ -310,13 +311,14 @@
           "faction": "Kingdom of Silvar"
         }
       },
-      "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/Silvaron.jpeg"
+      "banner": "https://file.garden/aLboplo8eB2dIZKp/Nimea/Silvaron.jpeg",
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/silvarcapitol.png"
     },
     {
       "id": "erdemar",
       "name": "Erdemar",
-      "x": 1020.0834737533935,
-      "y": 744.1592602966596,
+      "x": 1021,
+      "y": 742,
       "type": "city",
       "faction": "Silvar Krallığı",
       "summary": "Erden Gölü’nün karşı kıyısında, pazara açılan uzun iskeleleriyle tanınan Erdemar; balık, tahıl ve kerestenin el değiştirdiği, gölün nabzını tutan canlı bir liman şehridir.",
@@ -335,7 +337,8 @@
           "summary": "Across the lake from Silvaron, Erdemar is known for its long piers and bustling marketplace; a vibrant port city where fish, grain, and timber change hands, and the pulse of the lake is felt.",
           "faction": "Kingdom of Silvar"
         }
-      }
+      },
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/silvarsehir.png"
     },
     {
       "id": "iskelya",
@@ -360,7 +363,8 @@
           "summary": "The Silvar Kingdom’s gate to the sea. Known for its harbor chain, lighthouse, and salt pans.",
           "faction": "Kingdom of Silvar"
         }
-      }
+      },
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/silvarliman.png"
     },
     {
       "id": "durassa",
@@ -385,7 +389,8 @@
           "summary": "A walled port city known for its discipline and strict neutrality. Its Chain Tower and heavy harbor chain mark it as the sentinel of the coast.",
           "faction": "Council of Keys"
         }
-      }
+      },
+      "iconUrl": "https://file.garden/aLboplo8eB2dIZKp/Nimea/durassa.png"
     }
   ]
 }
