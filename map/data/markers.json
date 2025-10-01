@@ -361,6 +361,28 @@
           "faction": "Kingdom of Silvar"
         }
       }
+    },
+    {
+      "id": "durassa",
+      "name": "Durassa",
+      "x": 535.5,
+      "y": 831.25,
+      "type": "city",
+      "summary": "Yüksek duvarlarla çevrili, disiplinli ve tarafsız kalmaya özen gösteren liman şehri. Anahtarlar Kulesi ve zinciriyle, kıyının bekçisi olarak bilinir.",
+      "images": [
+        "https://file.garden/aLboplo8eB2dIZKp/Nimea/Durassa.jpg"
+      ],
+      "public": true,
+      "i18n": {
+        "tr": {
+          "name": "Durassa",
+          "summary": "Yüksek duvarlarla çevrili, disiplinli ve tarafsız kalmaya özen gösteren liman şehri. Anahtarlar Kulesi ve zinciriyle, kıyının bekçisi olarak bilinir."
+        },
+        "en": {
+          "name": "Durassa",
+          "summary": "A walled port city known for its discipline and strict neutrality. Its Chain Tower and heavy harbor chain mark it as the sentinel of the coast."
+        }
+      }
     }
   ]
 }
