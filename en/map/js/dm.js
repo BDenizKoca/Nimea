@@ -76,6 +76,11 @@
             return;
         }
 
+        // Wait for i18n data to load before creating controls
+        if (window.nimeaI18nLoad) {
+            await window.nimeaI18nLoad();
+        }
+
         // Initialize Git Gateway for live CMS functionality
         await initializeGitClient();
 

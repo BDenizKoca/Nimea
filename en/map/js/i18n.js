@@ -136,10 +136,12 @@
             const data = await response.json();
             window.i18n = data; // Expose for DM modules
             console.log('i18n data loaded for DM modules');
+            return true;
         } catch (error) {
             console.warn('Could not load _data/i18n.json:', error);
             // Fallback: use inline translations
             window.i18n = { tr: translations.tr, en: translations.en };
+            return false;
         }
     }
 
@@ -153,6 +155,9 @@
         initI18n();
         loadI18nData();
     }
+    
+    // Expose loadI18nData so DM can wait for it
+    window.nimeaI18nLoad = loadI18nData;
 
     // Export functions
     window.nimeaI18n = {
