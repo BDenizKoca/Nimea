@@ -568,8 +568,12 @@
          * @returns {boolean} Whether merge was successful
          */
         mergeTerrainType(terrainType) {
+            console.log(`\n=== MERGE ${terrainType} START ===`);
+            console.log('Turf.js available:', typeof turf !== 'undefined');
+            console.log('terrainModule available:', !!this.bridge.terrainModule);
+            
             if (typeof turf === 'undefined') {
-                console.warn('Turf.js not loaded, cannot merge terrain');
+                console.warn('❌ Turf.js not loaded, cannot merge terrain');
                 return false;
             }
             
@@ -578,6 +582,8 @@
                 f => f.properties.kind === terrainType
             );
             
+            console.log(`Found ${features.length} ${terrainType} features`);
+            
             if (features.length < 2) {
                 console.log(`Only ${features.length} ${terrainType} feature(s), nothing to merge`);
                 return false;
@@ -585,20 +591,30 @@
             
             try {
                 console.log(`Attempting to merge ${features.length} ${terrainType} features...`);
+                console.log('Sample feature geometry:', features[0].geometry.type);
                 
                 // Start with the first feature
                 let merged = turf.feature(features[0].geometry, { kind: terrainType });
+                console.log('Starting with feature 1');
                 
                 // Union with each subsequent feature
                 for (let i = 1; i < features.length; i++) {
+                    console.log(`Merging feature ${i + 1}/${features.length}...`);
                     const nextFeature = turf.feature(features[i].geometry);
-                    merged = turf.union(merged, nextFeature);
+                    const result = turf.union(merged, nextFeature);
+                    console.log('Union result:', result ? result.geometry.type : 'NULL');
+                    merged = result;
                 }
+                
+                console.log('Final merged geometry:', merged.geometry.type);
+                console.log('Features before filter:', this.bridge.state.terrain.features.length);
                 
                 // Remove old individual features
                 this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
                     f => f.properties.kind !== terrainType
                 );
+                
+                console.log('Features after filter:', this.bridge.state.terrain.features.length);
                 
                 // Add the merged feature with proper properties
                 merged.properties = {
@@ -608,17 +624,24 @@
                 
                 this.bridge.state.terrain.features.push(merged);
                 
+                console.log('Features after push:', this.bridge.state.terrain.features.length);
                 console.log(`✅ Merged ${features.length} ${terrainType} features into 1`);
                 
                 // Re-render terrain to show merged result
                 if (this.bridge.terrainModule) {
+                    console.log('Calling renderTerrain()...');
                     this.bridge.terrainModule.renderTerrain();
+                    console.log('renderTerrain() complete');
+                } else {
+                    console.warn('❌ terrainModule not available!');
                 }
                 
+                console.log(`=== MERGE ${terrainType} END ===\n`);
                 return true;
                 
             } catch (error) {
-                console.error('Error merging terrain features:', error);
+                console.error('❌ Error merging terrain features:', error);
+                console.error('Stack:', error.stack);
                 return false;
             }
         }
@@ -864,8 +887,11 @@
          * @returns {object} Statistics about the simplification
          */
         simplifyAllTerrain(tolerance = 0.002) {
+            console.log(`\n=== SIMPLIFY START (tolerance: ${tolerance}) ===`);
+            console.log('Turf.js available:', typeof turf !== 'undefined');
+            
             if (typeof turf === 'undefined') {
-                console.warn('Turf.js not loaded, cannot simplify terrain');
+                console.warn('❌ Turf.js not loaded, cannot simplify terrain');
                 return { success: false, error: 'Turf.js not available' };
             }
             
@@ -873,18 +899,25 @@
             let totalAfter = 0;
             let featuresProcessed = 0;
             
+            console.log('Features to simplify:', this.bridge.state.terrain.features.length);
+            
             // Process each terrain feature
-            this.bridge.state.terrain.features = this.bridge.state.terrain.features.map(feature => {
+            this.bridge.state.terrain.features = this.bridge.state.terrain.features.map((feature, idx) => {
                 try {
+                    console.log(`Processing feature ${idx + 1}/${this.bridge.state.terrain.features.length}`);
+                    
                     // Count nodes before
                     const nodesBefore = this.countNodes(feature.geometry);
                     totalBefore += nodesBefore;
+                    console.log(`  Before: ${nodesBefore} nodes`);
                     
                     // Simplify the geometry
                     const simplified = turf.simplify(feature, {
                         tolerance: tolerance,
                         highQuality: true // Use high-quality algorithm
                     });
+                    
+                    console.log('  Simplify result:', simplified ? simplified.geometry.type : 'NULL');
                     
                     // Preserve properties
                     simplified.properties = feature.properties;
@@ -895,22 +928,32 @@
                     
                     featuresProcessed++;
                     
-                    console.log(`Simplified ${feature.properties.kind}: ${nodesBefore} → ${nodesAfter} nodes`);
+                    console.log(`  After: ${nodesAfter} nodes (${nodesBefore - nodesAfter} removed)`);
+                    console.log(`  Simplified ${feature.properties.kind}: ${nodesBefore} → ${nodesAfter} nodes`);
                     
                     return simplified;
                     
                 } catch (error) {
-                    console.warn('Could not simplify feature:', error);
+                    console.warn('❌ Could not simplify feature:', error);
                     return feature; // Keep original if simplification fails
                 }
             });
             
+            console.log('All features processed');
+            console.log(`Total nodes: ${totalBefore} → ${totalAfter}`);
+            
             // Re-render terrain to show simplified result
             if (this.bridge.terrainModule) {
+                console.log('Calling renderTerrain()...');
                 this.bridge.terrainModule.renderTerrain();
+                console.log('renderTerrain() complete');
+            } else {
+                console.warn('❌ terrainModule not available!');
             }
             
             const reduction = totalBefore > 0 ? ((totalBefore - totalAfter) / totalBefore * 100).toFixed(1) : 0;
+            
+            console.log(`=== SIMPLIFY END (${reduction}% reduction) ===\n`);
             
             return {
                 success: true,
@@ -927,6 +970,8 @@
          */
         optimizeTerrain() {
             console.log('🔧 Starting terrain optimization...');
+            console.log('Turf.js available:', typeof turf !== 'undefined');
+            console.log('Terrain module available:', !!this.bridge.terrainModule);
             
             // Check if there are any terrain features
             const terrainCount = this.bridge.state.terrain?.features?.length || 0;
@@ -937,14 +982,25 @@
             }
             
             console.log(`Found ${terrainCount} terrain features to optimize`);
+            console.log('Before optimization:', JSON.parse(JSON.stringify(this.bridge.state.terrain.features.map(f => ({
+                kind: f.properties.kind,
+                nodes: this.countNodes(f.geometry)
+            })))));
             
             // Step 1: Merge adjacent features of same type
             console.log('Step 1: Merging adjacent features...');
             this.mergeAllTerrain();
             
+            console.log('After merge, before simplify:', this.bridge.state.terrain.features.length, 'features');
+            
             // Step 2: Simplify all features
             console.log('Step 2: Simplifying geometries...');
             const stats = this.simplifyAllTerrain(0.002); // Conservative tolerance
+            
+            console.log('After optimization:', JSON.parse(JSON.stringify(this.bridge.state.terrain.features.map(f => ({
+                kind: f.properties.kind,
+                nodes: this.countNodes(f.geometry)
+            })))));
             
             if (stats.success) {
                 const message = this.t('dm.notifications.terrainOptimized')
