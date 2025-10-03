@@ -178,33 +178,41 @@
         enableTerrainSelection() {
             const self = this;
             
-            // Listen for clicks on the map
-            this.bridge.map.on('click', function(e) {
-                // Only if in DM mode
-                if (!self.bridge.state.dmMode) return;
+            // Store reference to terrain layers for selection
+            if (!this.bridge.terrainLayerMap) {
+                this.bridge.terrainLayerMap = new Map(); // _internal_id -> layer
+            }
+            
+            // Hook into terrain rendering to track layers
+            const originalRenderTerrain = this.bridge.terrainModule.renderTerrain;
+            this.bridge.terrainModule.renderTerrain = function() {
+                originalRenderTerrain.call(this);
                 
-                // Check if we clicked on a terrain feature
-                const clickedFeatures = [];
-                
-                // Get terrain layer
-                if (self.bridge.terrainModule && self.bridge.terrainModule.terrainLayer) {
+                // After rendering, store layer references
+                self.bridge.terrainLayerMap.clear();
+                if (self.bridge.terrainModule.terrainLayer) {
                     self.bridge.terrainModule.terrainLayer.eachLayer(function(layer) {
-                        if (layer.getBounds && layer.getBounds().contains(e.latlng)) {
-                            // Check if point is actually inside the polygon
-                            const feature = layer.feature || layer.toGeoJSON();
-                            if (feature && feature.geometry) {
-                                clickedFeatures.push({ layer, feature });
-                            }
+                        const feature = layer.feature;
+                        if (feature && feature.properties._internal_id) {
+                            self.bridge.terrainLayerMap.set(feature.properties._internal_id, layer);
+                            
+                            // Add click handler to each layer
+                            layer.off('click'); // Remove old handlers
+                            layer.on('click', function(e) {
+                                L.DomEvent.stopPropagation(e); // Prevent map click
+                                if (self.bridge.state.isDmMode) {
+                                    self.toggleTerrainSelection(layer, feature);
+                                }
+                            });
                         }
                     });
                 }
-                
-                if (clickedFeatures.length > 0) {
-                    // Toggle selection of first clicked feature
-                    const { layer, feature } = clickedFeatures[0];
-                    self.toggleTerrainSelection(layer, feature);
-                }
-            });
+            };
+            
+            // Initial render
+            if (this.bridge.terrainModule.terrainLayer) {
+                this.bridge.terrainModule.renderTerrain();
+            }
         }
         
         /**
@@ -222,32 +230,56 @@
             if (index >= 0) {
                 // Deselect
                 selected.splice(index, 1);
-                layer.setStyle({ color: this.getTerrainColor(feature.properties.kind) });
-                console.log(`Deselected ${feature.properties.kind}. Now ${selected.length} selected.`);
+                
+                // Restore original style based on terrain type
+                const kind = feature.properties.kind;
+                const originalStyle = this.getTerrainStyle(kind);
+                layer.setStyle(originalStyle);
+                
+                console.log(`Deselected ${kind}. Now ${selected.length} selected.`);
             } else {
                 // Select
                 selected.push(feature);
-                layer.setStyle({ color: '#ff00ff', weight: 3 }); // Highlight in magenta
+                
+                // Highlight in bright magenta with thick border
+                layer.setStyle({
+                    color: '#ff00ff',
+                    weight: 5,
+                    opacity: 1.0,
+                    fillColor: '#ff00ff',
+                    fillOpacity: 0.3
+                });
+                
+                // Bring to front so it's visible
+                layer.bringToFront();
+                
                 console.log(`Selected ${feature.properties.kind}. Now ${selected.length} selected.`);
             }
             
             // Show notification
             if (selected.length > 0) {
                 this.bridge.showNotification(`${selected.length} polygon(s) selected for merging`, 'info');
+            } else {
+                this.bridge.showNotification('Selection cleared', 'info');
             }
         }
         
         /**
-         * Get default color for terrain type
+         * Get default style for terrain type (matches terrain.js rendering)
          */
-        getTerrainColor(kind) {
-            const colors = {
-                'road': '#8B4513',
-                'medium': '#FFA500', 
-                'difficult': '#FF4500',
-                'unpassable': '#8B0000'
-            };
-            return colors[kind] || '#666666';
+        getTerrainStyle(kind) {
+            switch (kind) {
+                case 'road':
+                    return { color: "#6a8caf", weight: 3, opacity: 0.8 };
+                case 'difficult':
+                    return { color: "#a0522d", weight: 2, opacity: 0.7, fillColor: "#a0522d", fillOpacity: 0.2, dashArray: '8, 8' };
+                case 'medium':
+                    return { color: "#228B22", weight: 2, opacity: 0.7, fillColor: "#228B22", fillOpacity: 0.3, dashArray: '4, 8' };
+                case 'unpassable':
+                    return { color: "#c0392b", weight: 2, opacity: 0.8, fillColor: "#c0392b", fillOpacity: 0.4 };
+                default:
+                    return { color: "#cccccc", weight: 1, opacity: 0.5 };
+            }
         }
 
         /**

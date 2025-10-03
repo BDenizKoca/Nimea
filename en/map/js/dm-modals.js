@@ -752,6 +752,7 @@
         /**
          * Manual merge tool: Merges selected polygons
          * User clicks polygons to select, then clicks "Merge Selected" button
+         * Uses buffer to fill small gaps between polygons
          */
         mergeSelectedPolygons() {
             if (typeof turf === 'undefined') {
@@ -788,11 +789,20 @@
             }
             
             try {
-                // Merge using turf.union
-                let merged = selected[0];
-                for (let i = 1; i < selected.length; i++) {
-                    merged = turf.union(merged, selected[i]);
+                // Buffer size: 0.001 degrees ≈ 100m at equator, fills small gaps
+                const bufferSize = 0.001;
+                
+                console.log('Step 1: Buffer each polygon slightly to fill gaps...');
+                const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
+                
+                console.log('Step 2: Union all buffered polygons...');
+                let merged = buffered[0];
+                for (let i = 1; i < buffered.length; i++) {
+                    merged = turf.union(merged, buffered[i]);
                 }
+                
+                console.log('Step 3: Buffer back inward to remove excess...');
+                merged = turf.buffer(merged, -bufferSize, { units: 'degrees' });
                 
                 // Preserve properties
                 merged.properties = {
@@ -800,6 +810,7 @@
                     _internal_id: `terrain_${firstType}_merged_${Date.now()}`
                 };
                 
+                console.log('Step 4: Update terrain data...');
                 // Remove old features
                 const selectedIds = selected.map(f => f.properties._internal_id);
                 this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
@@ -816,8 +827,8 @@
                 this.bridge.terrainModule.renderTerrain();
                 this.bridge.markDirty('terrain');
                 
-                this.bridge.showNotification(`Merged ${selected.length} polygons into 1`, 'success');
-                console.log('✅ Merge complete');
+                this.bridge.showNotification(`Merged ${selected.length} polygons (gaps filled)`, 'success');
+                console.log('✅ Merge complete with buffering');
                 
             } catch (error) {
                 console.error('Merge failed:', error);

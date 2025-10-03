@@ -17,6 +17,7 @@
             renderTerrain,
             hideTerrain,
             getTerrainAsGeoJSON,
+            get terrainLayer() { return terrainLayer; } // Expose layer for DM selection
         };
 
         // Only render terrain if in DM mode
