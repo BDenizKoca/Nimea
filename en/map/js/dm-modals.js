@@ -789,24 +789,37 @@
             }
             
             try {
-                // Buffer size: 0.001 degrees ≈ 100m at equator, fills small gaps
-                const bufferSize = 0.001;
-                
-                console.log('Step 1: Buffer each polygon slightly to fill gaps...');
+                console.log('Merging polygons...');
                 console.log('Selected features:', selected);
-                const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
-                console.log('Buffered features:', buffered);
                 
-                console.log('Step 2: Union all buffered polygons...');
-                // turf.union in v7 takes a FeatureCollection
-                const featureCollection = turf.featureCollection(buffered);
-                console.log('Feature collection:', featureCollection);
-                let merged = turf.union(featureCollection);
-                console.log('Union result:', merged);
+                // Try direct union first (works for touching/overlapping polygons)
+                const featureCollection = turf.featureCollection(selected);
+                let merged;
                 
-                console.log('Step 3: Buffer back inward to remove excess...');
-                merged = turf.buffer(merged, -bufferSize, { units: 'degrees' });
-                console.log('Final buffered result:', merged);
+                try {
+                    merged = turf.union(featureCollection);
+                    console.log('Direct union successful:', merged);
+                } catch (directError) {
+                    console.log('Direct union failed, trying with buffer to fill gaps...');
+                    // If direct union fails (polygons have gaps), use buffer method
+                    const bufferSize = 0.0005; // Smaller buffer: ~50m
+                    
+                    const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
+                    merged = turf.union(turf.featureCollection(buffered));
+                    
+                    // Try to buffer back (but don't fail if it makes polygon too small)
+                    try {
+                        const shrunk = turf.buffer(merged, -bufferSize, { units: 'degrees' });
+                        if (shrunk && shrunk.geometry && shrunk.geometry.coordinates.length > 0) {
+                            merged = shrunk;
+                            console.log('Buffered union successful');
+                        } else {
+                            console.log('Inward buffer too aggressive, keeping expanded union');
+                        }
+                    } catch (bufferError) {
+                        console.log('Inward buffer failed, keeping expanded union');
+                    }
+                }
                 
                 // Preserve properties
                 merged.properties = {
@@ -814,7 +827,8 @@
                     _internal_id: `terrain_${firstType}_merged_${Date.now()}`
                 };
                 
-                console.log('Step 4: Update terrain data...');
+                console.log('Final merged feature:', merged);
+                
                 // Remove old features
                 const selectedIds = selected.map(f => f.properties._internal_id);
                 this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
@@ -823,6 +837,7 @@
                 
                 // Add merged feature
                 this.bridge.state.terrain.features.push(merged);
+                console.log('New terrain feature count:', this.bridge.state.terrain.features.length);
                 
                 // Clear selection
                 this.bridge.selectedTerrainForMerge = [];
