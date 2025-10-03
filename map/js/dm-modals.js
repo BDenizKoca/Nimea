@@ -251,6 +251,7 @@
             document.getElementById('marker-summary-en').value = enLoc.summary || '';
             document.getElementById('marker-wiki-slug').value = markerData.wikiSlug || '';
             document.getElementById('marker-icon').value = markerData.customIcon || '';
+            document.getElementById('marker-icon-url').value = markerData.iconUrl || '';
             document.getElementById('marker-public').checked = markerData.public !== false;
             document.getElementById('marker-is-port').checked = markerData.isPort === true;
             
@@ -451,8 +452,15 @@
             // We only ensure it's an array to avoid runtime issues.
             if (!Array.isArray(markerData.images)) markerData.images = [];
             
+            // CRITICAL: Preserve fields not in the form (like banner, isWaypoint, etc.)
+            const oldMarker = this.bridge.state.markers[markerIndex];
+            const updatedMarker = {
+                ...oldMarker,      // Keep all existing fields
+                ...markerData,     // Override with new form data
+            };
+            
             // Replace the existing marker
-            this.bridge.state.markers[markerIndex] = markerData;
+            this.bridge.state.markers[markerIndex] = updatedMarker;
             
             // Need to refresh all markers to update the marker on the map
             if (this.bridge.markersModule && this.bridge.markersModule.renderMarkers) {
