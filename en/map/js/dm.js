@@ -44,10 +44,7 @@
             editMarker: (markerData) => dmModals.editMarker(markerData),
             deleteMarker,
             openBulkImportModal: () => dmModals.openBulkImportModal(),
-            mergeTerrainType: (type) => dmModals.mergeTerrainType(type),
-            mergeAllTerrain: () => dmModals.mergeAllTerrain(),
-            simplifyAllTerrain: (tolerance) => dmModals.simplifyAllTerrain(tolerance),
-            optimizeTerrain: () => dmModals.optimizeTerrain(),
+            mergeSelectedPolygons: () => dmModals.mergeSelectedPolygons(),
             exportData,
             publishAll
         };

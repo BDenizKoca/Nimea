@@ -142,31 +142,112 @@
         }
 
         /**
-         * Adds the "Optimize Terrain" button (merge + simplify)
+         * Adds the "Merge Selected" button for manual polygon merging
          */
         addTerrainMergeButton() {
             const self = this;
-            const OptimizeButton = L.Control.extend({
+            
+            // Initialize selection array
+            this.bridge.selectedTerrainForMerge = [];
+            
+            const MergeButton = L.Control.extend({
                 options: { position: 'topleft' },
                 onAdd: function () {
-                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control optimize-control');
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                     const button = L.DomUtil.create('a', 'leaflet-control-button', container);
-                    const label = self.t('dm.optimizeTerrain');
-                    button.innerHTML = label;
-                    button.title = self.t('dm.optimizeTerrainTitle');
+                    button.innerHTML = 'Merge Selected';
+                    button.title = 'Click polygons to select, then click to merge them';
                     button.onclick = () => {
-                        console.log('Optimize button clicked');
-                        if (self.bridge.dmModule && self.bridge.dmModule.optimizeTerrain) {
-                            self.bridge.dmModule.optimizeTerrain();
-                        } else {
-                            console.error('optimizeTerrain function not found');
+                        if (self.bridge.dmModule && self.bridge.dmModule.mergeSelectedPolygons) {
+                            self.bridge.dmModule.mergeSelectedPolygons();
                         }
                     };
-                    console.log('Optimize button created with label:', label);
                     return container;
                 }
             });
-            this.bridge.map.addControl(new OptimizeButton());
+            
+            this.bridge.map.addControl(new MergeButton());
+            
+            // Add click handler to terrain layers for selection
+            this.enableTerrainSelection();
+        }
+        
+        /**
+         * Enable clicking on terrain polygons to select them for merging
+         */
+        enableTerrainSelection() {
+            const self = this;
+            
+            // Listen for clicks on the map
+            this.bridge.map.on('click', function(e) {
+                // Only if in DM mode
+                if (!self.bridge.state.dmMode) return;
+                
+                // Check if we clicked on a terrain feature
+                const clickedFeatures = [];
+                
+                // Get terrain layer
+                if (self.bridge.terrainModule && self.bridge.terrainModule.terrainLayer) {
+                    self.bridge.terrainModule.terrainLayer.eachLayer(function(layer) {
+                        if (layer.getBounds && layer.getBounds().contains(e.latlng)) {
+                            // Check if point is actually inside the polygon
+                            const feature = layer.feature || layer.toGeoJSON();
+                            if (feature && feature.geometry) {
+                                clickedFeatures.push({ layer, feature });
+                            }
+                        }
+                    });
+                }
+                
+                if (clickedFeatures.length > 0) {
+                    // Toggle selection of first clicked feature
+                    const { layer, feature } = clickedFeatures[0];
+                    self.toggleTerrainSelection(layer, feature);
+                }
+            });
+        }
+        
+        /**
+         * Toggle selection state of a terrain feature
+         */
+        toggleTerrainSelection(layer, feature) {
+            if (!this.bridge.selectedTerrainForMerge) {
+                this.bridge.selectedTerrainForMerge = [];
+            }
+            
+            const selected = this.bridge.selectedTerrainForMerge;
+            const featureId = feature.properties._internal_id;
+            const index = selected.findIndex(f => f.properties._internal_id === featureId);
+            
+            if (index >= 0) {
+                // Deselect
+                selected.splice(index, 1);
+                layer.setStyle({ color: this.getTerrainColor(feature.properties.kind) });
+                console.log(`Deselected ${feature.properties.kind}. Now ${selected.length} selected.`);
+            } else {
+                // Select
+                selected.push(feature);
+                layer.setStyle({ color: '#ff00ff', weight: 3 }); // Highlight in magenta
+                console.log(`Selected ${feature.properties.kind}. Now ${selected.length} selected.`);
+            }
+            
+            // Show notification
+            if (selected.length > 0) {
+                this.bridge.showNotification(`${selected.length} polygon(s) selected for merging`, 'info');
+            }
+        }
+        
+        /**
+         * Get default color for terrain type
+         */
+        getTerrainColor(kind) {
+            const colors = {
+                'road': '#8B4513',
+                'medium': '#FFA500', 
+                'difficult': '#FF4500',
+                'unpassable': '#8B0000'
+            };
+            return colors[kind] || '#666666';
         }
 
         /**
