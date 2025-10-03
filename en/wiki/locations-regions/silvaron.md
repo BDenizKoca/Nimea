@@ -1,5 +1,6 @@
 ---
 layout: base.njk
+lang: en
 name: Silvaron
 slug: silvaron
 summary: City of the Seven Domes, shimmering in the light of Lake Altun. Seat of

@@ -3,6 +3,7 @@ _site
 .DS_Store
 npm-debug.log*
 package-lock.json
+.env
 cms-server.js
 mapsitemvp.md
 PRODUCTION_PLAN.md# Ignore local maintenance scripts

@@ -1,5 +1,6 @@
 ---
 layout: base.njk
+lang: en
 name: Durassa
 slug: durassa
 summary: A walled port city known for its discipline and strict neutrality. Its

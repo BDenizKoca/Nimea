@@ -220,17 +220,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 if (migrationMade) {
-                    console.log('Performed one-time migration for terrain feature IDs.');
+                    if (window.logger) window.logger.log('Performed one-time migration for terrain feature IDs.');
                     markDirty('terrain');
                     // The "UNSAVED" badge will appear, prompting the user to save the migrated IDs.
                 }
             }
 
-            console.log('Loaded data:', {
-                markers: state.markers.length,
-                terrain: state.terrain.features.length,
-                config: remoteConfig
-            });
+            if (window.logger) {
+                window.logger.log('Loaded data:', {
+                    markers: state.markers.length,
+                    terrain: state.terrain.features.length,
+                    config: remoteConfig
+                });
+            }
 
             // Initialize modules
             if (window.__nimea_routing_init) window.__nimea_routing_init(window.__nimea);
@@ -368,18 +370,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Setup Functions ---
     function setupOverlays() {
-        console.log('Setting up overlays:', config.overlays, 'bounds:', originalMapBounds);
+        if (window.logger) window.logger.log('Setting up overlays:', config.overlays, 'bounds:', originalMapBounds);
         if (config.overlays && originalMapBounds) {
             if (config.overlays.regions) {
-                console.log('Adding regions overlay:', config.overlays.regions);
+                if (window.logger) {
+                    window.logger.log('Adding regions overlay:', config.overlays.regions);
+                }
                 const regionsPath = config.overlays.regions.startsWith('/') ? config.overlays.regions : '/' + config.overlays.regions;
-                console.log('Regions overlay path:', regionsPath);
+                if (window.logger) window.logger.log('Regions overlay path:', regionsPath);
                 state.overlays.regions = L.imageOverlay(regionsPath, originalMapBounds, { opacity: 1, pane: 'regionsPane' });
             }
             if (config.overlays.borders) {
-                console.log('Adding borders overlay:', config.overlays.borders);
+                if (window.logger) {
+                    window.logger.log('Adding borders overlay:', config.overlays.borders);
+                }
                 const bordersPath = config.overlays.borders.startsWith('/') ? config.overlays.borders : '/' + config.overlays.borders;
-                console.log('Borders overlay path:', bordersPath);
+                if (window.logger) window.logger.log('Borders overlay path:', bordersPath);
                 state.overlays.borders = L.imageOverlay(bordersPath, originalMapBounds, { opacity: 0.9, pane: 'bordersPane' });
             }
         }

@@ -1,6 +1,8 @@
 {
   "name": "Nimea",
   "short_name": "Nimea",
+  "lang": "tr",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

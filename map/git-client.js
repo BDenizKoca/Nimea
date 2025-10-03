@@ -108,16 +108,18 @@ class GitGatewayClient {
         
         this.isAuthenticated = true;
         
-        // Log user info to help with debugging
-        console.log('DM authenticated:', user.user_metadata?.full_name || user.email);
-        console.log('Auth token details:', {
-            tokenPresent: !!this.token,
-            tokenLength: this.token?.length || 0,
-            userId: user.id,
-            userEmail: user.email,
-            userName: user.user_metadata?.full_name || 'not set',
-            roles: user.app_metadata?.roles || []
-        });
+        // Log user info (only in debug mode for security)
+        if (window.location.hostname === 'localhost' || window.location.search.includes('debug=1')) {
+            console.log('DM authenticated:', user.user_metadata?.full_name || user.email);
+            console.log('Auth token details:', {
+                tokenPresent: !!this.token,
+                tokenLength: this.token?.length || 0,
+                userId: user.id,
+                userEmail: user.email,
+                userName: user.user_metadata?.full_name || 'not set',
+                roles: user.app_metadata?.roles || []
+            });
+        }
 
         // Dispatch a custom event so UI components can react to late auth resolution
         try {

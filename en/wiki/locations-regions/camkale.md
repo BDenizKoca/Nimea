@@ -1,5 +1,6 @@
 ---
 layout: base.njk
+lang: en
 name: Pineford
 slug: camkale
 summary: The palisaded capital of the Kingdom of Pineford, built around the

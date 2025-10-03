@@ -1,5 +1,14 @@
 ---
 layout: base.njk
+lang: en
+name: İskelya
+slug: iskelya
+summary: The Silvar Kingdom's gate to the sea. Known for its harbor chain,
+  lighthouse, and salt pans.
+cover_image: https://file.garden/aLboplo8eB2dIZKp/Nimea/iskelya.png
+map_id: iskelya
+public: true
+---t: base.njk
 name: İskelya
 slug: iskelya
 summary: The Silvar Kingdom’s gate to the sea. Known for its harbor chain,

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=EB+Garamond:wght@400;500;700&display=swap&subset=latin-ext">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/map/style.css">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/icon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/icon-180.png">
@@ -263,34 +263,35 @@ Thornhold,2000,1500,fortress,Empire,Dağ kalesi,true"></textarea>
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
     <!-- Netlify Identity for DM authentication -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="js/utils/logger.js"></script>
-    <script src="config.js"></script>
-    <script src="git-client.js"></script>
-    <script src="js/leaflet.tappable.js"></script>
+    <script src="/map/config.js"></script>
+    <script src="/map/git-client.js"></script>
+    <script src="/map/js/leaflet.tappable.js"></script>
+    <script src="/map/js/utils/logger.js"></script>
     <!-- Routing Module Components (load before main routing.js) -->
-    <script src="js/routing/terrain-utils.js"></script>
-    <script src="js/routing/pathfinding.js"></script>
-    <script src="js/routing/graph-builder.js"></script>
-    <script src="js/routing/path-naturalizer.js"></script>
-    <script src="js/routing/visualizer.js"></script>
+    <script src="/map/js/routing/terrain-utils.js"></script>
+    <script src="/map/js/routing/pathfinding.js"></script>
+    <script src="/map/js/routing/graph-builder.js"></script>
+    <script src="/map/js/routing/path-naturalizer.js"></script>
+    <script src="/map/js/routing/visualizer.js"></script>
     <!-- New Modular Routing Components -->
-    <script src="js/routing/route-core.js"></script>
-    <script src="js/routing/waypoint-manager.js"></script>
-    <script src="js/routing/route-ui.js"></script>
-    <script src="js/routing/route-drag-drop.js"></script>
-    <script src="js/routing/route-share.js"></script>
-    <script src="js/routing.js"></script>
+    <script src="/map/js/routing/route-core.js"></script>
+    <script src="/map/js/routing/waypoint-manager.js"></script>
+    <script src="/map/js/routing/route-ui.js"></script>
+    <script src="/map/js/routing/route-drag-drop.js"></script>
+    <!-- Load base TR route-share implementation first (shared logic) -->
+    <script src="/map/js/routing/route-share.js"></script>
+    <script src="/map/js/routing.js"></script>
     <!-- Internationalization -->
     <script src="js/i18n.js"></script>
-    <!-- DM Module Components -->
+    <!-- DM Module Components (TR-specific to keep UI strings localized) -->
     <script src="js/dm-controls.js"></script>
     <script src="js/dm-modals.js"></script>
     <script src="js/dm.js"></script>
     <!-- End DM Module Components -->
-    <script src="js/ui.js"></script>
-    <script src="js/direct-touch.js"></script>
-    <script src="js/markers.js"></script>
-    <script src="js/terrain.js"></script>
+    <script src="/map/js/ui.js"></script>
+    <script src="/map/js/direct-touch.js"></script>
+    <script src="/map/js/markers.js"></script>
+    <script src="/map/js/terrain.js"></script>
     <script src="map.js"></script>
         <script>
             // Ensure map and sidebars start below header: set CSS var dynamically
@@ -331,7 +332,7 @@ Thornhold,2000,1500,fortress,Empire,Dağ kalesi,true"></textarea>
                     navigator.serviceWorker.register('/service-worker.js').catch(console.error);
                 });
             }
-            // Show only a single Logout button when logged in; on click, logout and refresh without DM
+            // Show a single Logout button when logged in; on click, logout and refresh without DM
             (function(){
                 const LS_DM_KEY = 'nimea.dm';
                 const btn = document.getElementById('logout-btn');
@@ -361,7 +362,6 @@ Thornhold,2000,1500,fortress,Empire,Dağ kalesi,true"></textarea>
                     try { localStorage.removeItem(LS_DM_KEY); } catch{}
                     if (window.netlifyIdentity && typeof window.netlifyIdentity.logout === 'function') {
                         window.netlifyIdentity.logout();
-                        // Fallback in case no event fires
                         setTimeout(() => location.replace(refreshedUrlWithoutDm()), 1000);
                     } else {
                         location.replace(refreshedUrlWithoutDm());

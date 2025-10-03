@@ -1,5 +1,6 @@
 ---
 layout: base.njk
+lang: en
 name: Erdemar
 slug: erdemar
 summary: Across the lake from Silvaron, Erdemar is known for its long piers and

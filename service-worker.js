@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nimea-cache-v2';
+const CACHE_NAME = 'nimea-cache-v3';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const CORE_ASSETS = [
   '/css/style.css',
   '/manifest.webmanifest',
   '/js/search.js',
+  '/search-index.json',
   '/offline.html'
 ];
 

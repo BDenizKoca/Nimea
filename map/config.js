@@ -1,12 +1,13 @@
 // Netlify configuration for live CMS
-// Set your build hook URL here to enable automatic rebuilds
-// when DM makes changes to the repository
+// Build hook URL for automatic rebuilds when DM makes changes
 
-// Get this from: Netlify Dashboard → Site Settings → Build & Deploy → Build Hooks
-// Create a build hook and copy the URL here
-window.NETLIFY_BUILD_HOOK = 'https://api.netlify.com/build_hooks/YOUR_BUILD_HOOK_ID_HERE';
+// SECURITY NOTE: In production (Netlify), set NETLIFY_BUILD_HOOK as an environment variable
+// Locally, you can set it in .env file (not committed to Git)
 
-// You can also set this via environment variable in production
-if (typeof process !== 'undefined' && process.env.NETLIFY_BUILD_HOOK) {
-    window.NETLIFY_BUILD_HOOK = process.env.NETLIFY_BUILD_HOOK;
+// Default fallback (replace with your actual hook if not using env vars)
+window.NETLIFY_BUILD_HOOK = 'https://api.netlify.com/build_hooks/68df40733d69da60501dba60';
+
+// Override with environment variable if available (Netlify will inject this)
+if (window.NETLIFY_ENV && window.NETLIFY_ENV.BUILD_HOOK) {
+    window.NETLIFY_BUILD_HOOK = window.NETLIFY_ENV.BUILD_HOOK;
 }

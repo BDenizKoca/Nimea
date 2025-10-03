@@ -75,13 +75,13 @@
         <main>
             {% if cover_image %}
             <div class="cover-image">
-                <img src="{{ cover_image | url }}" alt="{{ title or name }} için kapak görseli" />
+                <img src="{{ cover_image | url }}" alt="{{ title or name }} için kapak görseli" loading="lazy" />
             </div>
             {% endif %}
             
             {% if portrait_image %}
             <div class="portrait-image">
-                <img src="{{ portrait_image | url }}" alt="{{ title or name }} portresi" />
+                <img src="{{ portrait_image | url }}" alt="{{ title or name }} portresi" loading="lazy" />
             </div>
             {% endif %}
             
