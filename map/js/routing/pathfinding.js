@@ -59,13 +59,30 @@
             for (let edge of graph.edges) {
                 if (edge.from === current) {
                     const neighbor = edge.to;
+                    const currentNode = graph.nodes.get(current);
+                    const neighborNode = graph.nodes.get(neighbor);
+                    
+                    // Port gate logic: Check if transitioning between land and water
+                    if (currentNode.isWater !== undefined && neighborNode.isWater !== undefined) {
+                        // Crossing land/water boundary
+                        if (currentNode.isWater !== neighborNode.isWater) {
+                            // Check if either current or neighbor is a port
+                            const currentIsPort = isPortNode(current, graph.nodes);
+                            const neighborIsPort = isPortNode(neighbor, graph.nodes);
+                            
+                            if (!currentIsPort && !neighborIsPort) {
+                                // Can't cross land/water boundary without a port - skip this edge
+                                continue;
+                            }
+                        }
+                    }
+                    
                     const tentativeGScore = gScore.get(current) + (edge.distance * edge.cost);
                     
                     if (tentativeGScore < gScore.get(neighbor)) {
                         cameFrom.set(neighbor, current);
                         gScore.set(neighbor, tentativeGScore);
                         
-                        const neighborNode = graph.nodes.get(neighbor);
                         fScore.set(neighbor, tentativeGScore + heuristic(neighborNode, endNode));
                         
                         if (!openSet.has(neighbor)) {
@@ -77,6 +94,24 @@
         }
 
         return null; // No path found
+    }
+
+    /**
+     * Check if a node is a port (can access both land and water)
+     */
+    function isPortNode(nodeId, nodesMap) {
+        const node = nodesMap.get(nodeId);
+        if (!node) return false;
+        
+        // Check if this is a marker node
+        if (node.type === 'marker_node') {
+            // Access global bridge to check if marker has isPort flag
+            if (window.bridge && window.bridge.state && window.bridge.state.markers) {
+                const marker = window.bridge.state.markers.find(m => m.id === node.markerId);
+                return marker && marker.isPort === true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -162,7 +197,31 @@
     }
 
     /**
-     * Compute total cost of graph path in weighted distance
+     * Compute actual physical distance of path (no terrain cost weighting)
+     */
+    function computeActualDistance(pathIds, edgeMap, kmPerPixel) {
+        if (!pathIds || pathIds.length < 2) return 0;
+        
+        let totalDistancePx = 0;
+        
+        for (let i = 1; i < pathIds.length; i++) {
+            const edgeKey = `${pathIds[i-1]}|${pathIds[i]}`;
+            const edge = edgeMap.get(edgeKey);
+            
+            if (!edge) {
+                console.warn(`Missing edge: ${edgeKey}`);
+                return Infinity;
+            }
+            
+            totalDistancePx += edge.distance; // No cost multiplier!
+        }
+        
+        return totalDistancePx * kmPerPixel;
+    }
+
+    /**
+     * Compute total cost of graph path in weighted distance (for pathfinding comparison)
+     * NOTE: This is used internally by A* - NOT for display to users!
      */
     function computeGraphPathCost(pathIds, edgeMap, kmPerPixel) {
         if (!pathIds || pathIds.length < 2) return 0;
@@ -189,7 +248,8 @@
         findShortestPathAStar,
         findShortestPath,
         heuristic,
-        computeGraphPathCost
+        computeGraphPathCost,
+        computeActualDistance
     };
 
 })(window);

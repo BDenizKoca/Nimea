@@ -409,6 +409,8 @@
 
     /**
      * Generate comprehensive route summary with composition analysis
+     * NOTE: All displayed distances are ACTUAL physical distances, never weighted costs!
+     * Weighted costs (distance × terrain_cost) are used internally for pathfinding only.
      */
     function updateRouteSummaryFromLegs() {
         const summaryDiv = document.getElementById('route-summary');
@@ -418,7 +420,7 @@
             return; 
         }
         
-    const totalKm = bridge.state.routeLegs.reduce((a, l) => a + l.distanceKm, 0);
+    const totalKm = bridge.state.routeLegs.reduce((a, l) => a + l.distanceKm, 0); // Actual distance, not weighted!
         const hasUnreachable = bridge.state.routeLegs.some(l => l.unreachable);
         
         // Analyze Rota Bileşimi

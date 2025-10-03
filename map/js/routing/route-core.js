@@ -27,6 +27,19 @@
         pathfinding = window.__nimea_pathfinding;
         visualizer = window.__nimea_visualizer;
         
+        // Set up sea travel checkbox listener
+        const seaTravelCheckbox = document.getElementById('sea-travel-checkbox');
+        if (seaTravelCheckbox) {
+            seaTravelCheckbox.addEventListener('change', () => {
+                // Invalidate graph when sea travel option changes
+                invalidateGraph();
+                // Recompute route with new settings
+                if (bridge.state.route.length >= 2) {
+                    recomputeRoute();
+                }
+            });
+        }
+        
         console.log("Route core module initialized");
     }
 
@@ -213,7 +226,9 @@
         
         // Build graph if it doesn't exist
         if (!routingGraph) {
-            routingGraph = graphBuilder.buildRoutingGraph();
+            const seaTravelCheckbox = document.getElementById('sea-travel-checkbox');
+            const seaTravelEnabled = seaTravelCheckbox ? seaTravelCheckbox.checked : false;
+            routingGraph = graphBuilder.buildRoutingGraph(seaTravelEnabled);
         }
 
         if (!routingGraph) {
@@ -335,13 +350,15 @@
         
         // Convert path to segments and render
     const pathSegments = visualizer.analyzePathSegments(graphPath, routingGraph, start, end);
-        const totalCostKm = pathfinding.computeGraphPathCost(graphPath, routingGraph.edgeMap, bridge.config.kmPerPixel);
+        const actualDistanceKm = pathfinding.computeActualDistance(graphPath, routingGraph.edgeMap, bridge.config.kmPerPixel);
+        const weightedCostKm = pathfinding.computeGraphPathCost(graphPath, routingGraph.edgeMap, bridge.config.kmPerPixel);
         
         // Add leg to route
         bridge.state.routeLegs.push({ 
             from: start, 
             to: end, 
-            distanceKm: totalCostKm, 
+            distanceKm: actualDistanceKm,        // ACTUAL physical distance for display
+            weightedCostKm: weightedCostKm,      // Weighted cost (internal use only)
             hybrid: true,
             segments: pathSegments
         });

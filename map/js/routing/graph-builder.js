@@ -27,16 +27,16 @@
     /**
      * Build the complete hybrid multilayer routing graph
      */
-    function buildRoutingGraph() {
+    function buildRoutingGraph(seaTravelEnabled = false) {
         const nodes = new Map(); // nodeId -> {x, y, type, cost}
         const edges = []; // {from, to, cost, distance, type}
         const edgeMap = new Map(); // `${from}|${to}` -> edge
         
-        console.log("Building hybrid multilayer routing graph...");
+        console.log(`Building hybrid multilayer routing graph... (Sea Travel: ${seaTravelEnabled ? 'ENABLED' : 'DISABLED'})`);
         
         // Build each layer of the graph
         buildRoadsLayer(nodes, edges, edgeMap);
-        buildTerrainGridLayer(nodes, edges, edgeMap);
+        buildTerrainGridLayer(nodes, edges, edgeMap, seaTravelEnabled);
         buildMarkersLayer(nodes);
         buildBridgeConnections(nodes, edges, edgeMap);
         
@@ -128,7 +128,7 @@
     /**
      * Build terrain grid layer - fallback pathfinding network
      */
-    function buildTerrainGridLayer(nodes, edges, edgeMap) {
+    function buildTerrainGridLayer(nodes, edges, edgeMap, seaTravelEnabled = false) {
         const mapBounds = getMapBounds();
         const terrainNodes = new Map();
         
@@ -136,14 +136,20 @@
         for (let x = mapBounds.minX; x <= mapBounds.maxX; x += TERRAIN_GRID_SIZE) {
             for (let y = mapBounds.minY; y <= mapBounds.maxY; y += TERRAIN_GRID_SIZE) {
                 const nodeId = `terrain_${Math.round(x)}_${Math.round(y)}`;
-                const terrainCost = getTerrainCostAtPoint(x, y);
+                let terrainCost = getTerrainCostAtPoint(x, y);
+                
+                // If this is water (blocked/unpassable) and sea travel is enabled, make it navigable
+                if ((terrainCost === TERRAIN_COSTS.blocked || terrainCost === 999) && seaTravelEnabled) {
+                    terrainCost = 1.0; // Normal cost for sea travel (120 km/day like normal land)
+                }
                 
                 // Add all nodes, even high-cost ones (no infinite costs anymore)
                 nodes.set(nodeId, {
                     x: x,
                     y: y,
                     type: 'terrain_node',
-                    terrainCost: terrainCost
+                    terrainCost: terrainCost,
+                    isWater: (getTerrainCostAtPoint(x, y) === TERRAIN_COSTS.blocked || getTerrainCostAtPoint(x, y) === 999)
                 });
                 terrainNodes.set(`${Math.round(x)},${Math.round(y)}`, nodeId);
             }

@@ -50,6 +50,12 @@
     <div class="sidebar left-sidebar" id="route-sidebar">
         <button id="close-route-sidebar" class="sidebar-close-btn">&times;</button>
     <h2>Route Planner</h2>
+        <div class="route-options" style="margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 4px;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="sea-travel-checkbox" style="margin-right: 8px; cursor: pointer;">
+                <span>Enable Sea Travel</span>
+            </label>
+        </div>
         <div id="route-stops"></div>
         <div id="route-summary"></div>
     </div>
@@ -154,6 +160,14 @@
                         <input type="checkbox" id="marker-public" name="marker-public" checked>
                         Public (players can see)
                     </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="marker-is-port" name="marker-is-port">
+                        Port (sea travel access)
+                    </label>
+                    <small>If checked, this city acts as a gateway between land and sea routes</small>
                 </div>
                 
                 <div class="form-actions">

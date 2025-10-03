@@ -245,6 +245,7 @@
             document.getElementById('marker-wiki-slug').value = markerData.wikiSlug || '';
             document.getElementById('marker-icon').value = markerData.customIcon || '';
             document.getElementById('marker-public').checked = markerData.public !== false;
+            document.getElementById('marker-is-port').checked = markerData.isPort === true;
             
             // Update icon selector visual state
             const iconOptions = document.querySelectorAll('.icon-option');
@@ -327,6 +328,7 @@
             const customIcon = formData.get('marker-icon');
             const iconUrl = formData.get('marker-icon-url');
             const isPublic = formData.get('marker-public') === 'on';
+            const isPort = formData.get('marker-is-port') === 'on';
             const wikiSlug = formData.get('marker-wiki-slug');
             
             // Get coordinates from the hidden fields
@@ -349,6 +351,7 @@
                 iconUrl: iconUrl ? iconUrl.trim() : undefined,
                 images: [], // Will populate from UI; preserve in edit mode handled below
                 public: isPublic,
+                isPort: isPort || undefined,
                 wikiSlug: wikiSlug ? wikiSlug.trim() || undefined : undefined,
             };
 
