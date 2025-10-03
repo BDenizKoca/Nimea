@@ -136,15 +136,20 @@
             const OptimizeButton = L.Control.extend({
                 options: { position: 'topleft' },
                 onAdd: function () {
-                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control optimize-control');
                     const button = L.DomUtil.create('a', 'leaflet-control-button', container);
-                    button.innerHTML = self.t('dm.optimizeTerrain');
+                    const label = self.t('dm.optimizeTerrain');
+                    button.innerHTML = label;
                     button.title = self.t('dm.optimizeTerrainTitle');
                     button.onclick = () => {
+                        console.log('Optimize button clicked');
                         if (self.bridge.dmModule && self.bridge.dmModule.optimizeTerrain) {
                             self.bridge.dmModule.optimizeTerrain();
+                        } else {
+                            console.error('optimizeTerrain function not found');
                         }
                     };
+                    console.log('Optimize button created with label:', label);
                     return container;
                 }
             });

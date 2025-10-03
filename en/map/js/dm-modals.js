@@ -925,6 +925,16 @@
         optimizeTerrain() {
             console.log('🔧 Starting terrain optimization...');
             
+            // Check if there are any terrain features
+            const terrainCount = this.bridge.state.terrain?.features?.length || 0;
+            if (terrainCount === 0) {
+                this.bridge.showNotification('No terrain features to optimize. Paint some terrain first!', 'info');
+                console.log('No terrain features found');
+                return;
+            }
+            
+            console.log(`Found ${terrainCount} terrain features to optimize`);
+            
             // Step 1: Merge adjacent features of same type
             console.log('Step 1: Merging adjacent features...');
             this.mergeAllTerrain();
