@@ -793,16 +793,20 @@
                 const bufferSize = 0.001;
                 
                 console.log('Step 1: Buffer each polygon slightly to fill gaps...');
+                console.log('Selected features:', selected);
                 const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
+                console.log('Buffered features:', buffered);
                 
                 console.log('Step 2: Union all buffered polygons...');
-                let merged = buffered[0];
-                for (let i = 1; i < buffered.length; i++) {
-                    merged = turf.union(merged, buffered[i]);
-                }
+                // turf.union in v7 takes a FeatureCollection
+                const featureCollection = turf.featureCollection(buffered);
+                console.log('Feature collection:', featureCollection);
+                let merged = turf.union(featureCollection);
+                console.log('Union result:', merged);
                 
                 console.log('Step 3: Buffer back inward to remove excess...');
                 merged = turf.buffer(merged, -bufferSize, { units: 'degrees' });
+                console.log('Final buffered result:', merged);
                 
                 // Preserve properties
                 merged.properties = {
