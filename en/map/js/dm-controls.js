@@ -11,24 +11,37 @@
         constructor(bridge) {
             this.bridge = bridge;
             this.currentTerrainMode = null;
-            
-            // i18n helper - get current language from bridge
-            this.lang = bridge.state.lang || 'en';
         }
         
         /**
-         * Translation helper function
-         * @param {string} key - Dot-notation key (e.g., 'dm.download')
-         * @returns {string} Translated string or key if not found
+         * Simple English strings for DM interface
          */
         t(key) {
-            const keys = key.split('.');
-            let value = window.i18n?.[this.lang];
-            for (const k of keys) {
-                value = value?.[k];
-                if (value === undefined) break;
-            }
-            return value || key;
+            const strings = {
+                'dm.publish': 'Publish',
+                'dm.download': 'Download',
+                'dm.publishTitle': 'Save changes to repository',
+                'dm.downloadTitle': 'Download data files locally',
+                'dm.login': 'Login',
+                'dm.logout': 'Logout',
+                'dm.loginTitle': 'Login to enable publishing',
+                'dm.status': 'Status',
+                'dm.terrainRoad': 'Road',
+                'dm.terrainMedium': 'Medium',
+                'dm.terrainDifficult': 'Difficult',
+                'dm.terrainUnpassable': 'Unpassable',
+                'dm.terrainNormal': 'Normal',
+                'dm.terrainRoadTitle': 'Paint road terrain (fast travel)',
+                'dm.terrainMediumTitle': 'Paint medium difficulty terrain',
+                'dm.terrainDifficultTitle': 'Paint difficult terrain (slow travel)',
+                'dm.terrainUnpassableTitle': 'Paint impassable terrain',
+                'dm.terrainNormalTitle': 'Paint normal terrain',
+                'dm.optimizeTerrain': 'Optimize',
+                'dm.optimizeTerrainTitle': 'Merge and simplify terrain features',
+                'dm.import': 'Import',
+                'dm.importTitle': 'Bulk import markers from CSV'
+            };
+            return strings[key] || key;
         }
 
         /**

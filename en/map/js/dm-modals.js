@@ -12,24 +12,27 @@
             this.bridge = bridge;
             this.pendingMarker = null;
             this.pendingTerrain = null;
-            
-            // i18n helper - get current language from bridge
-            this.lang = bridge.state.lang || 'en';
         }
         
         /**
-         * Translation helper function
-         * @param {string} key - Dot-notation key (e.g., 'dm.markerSaved')
-         * @returns {string} Translated string or key if not found
+         * Simple English strings for DM interface
          */
         t(key) {
-            const keys = key.split('.');
-            let value = window.i18n?.[this.lang];
-            for (const k of keys) {
-                value = value?.[k];
-                if (value === undefined) break;
-            }
-            return value || key;
+            const strings = {
+                'dm.notifications.markerSaved': 'Marker saved',
+                'dm.notifications.markerUpdated': 'Marker updated',
+                'dm.notifications.markerDeleted': 'Marker deleted',
+                'dm.notifications.terrainSaved': 'Terrain saved',
+                'dm.notifications.terrainMerged': 'Merged {{count}} terrain type(s)',
+                'dm.notifications.noTerrainToMerge': 'No terrain features to merge',
+                'dm.notifications.terrainOptimized': 'Terrain optimized: {{before}} → {{after}} nodes ({{reduction}} reduction)',
+                'dm.notifications.terrainOptimizeFailed': 'Could not optimize terrain',
+                'dm.notifications.importSuccess': '{{count}} markers imported',
+                'dm.notifications.importError': 'Import error',
+                'dm.notifications.authStatusAuthenticated': 'Authenticated',
+                'dm.notifications.authStatusNotAuthenticated': 'Not authenticated'
+            };
+            return strings[key] || key;
         }
 
         /**
