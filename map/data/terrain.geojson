@@ -22764,46 +22764,6 @@
           ]
         ]
       }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "kind": "unpassable",
-        "_internal_id": "terrain_1759467032661_0.6356122149719539"
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            1509,
-            898.875
-          ],
-          [
-            1529,
-            892
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "kind": "unpassable",
-        "_internal_id": "terrain_1759467043143_0.299274305169543"
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            1403.75,
-            909.625
-          ],
-          [
-            1408,
-            936
-          ]
-        ]
-      }
     }
   ]
 }
