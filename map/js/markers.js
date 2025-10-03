@@ -181,8 +181,9 @@ function updateAllMarkerSizes() {
                 if (bridge.state.isDmMode) {
                     marker.on('dragend', function(e) {
                         const newPos = e.target.getLatLng();
-                        markerData.y = Math.round(newPos.lat);
-                        markerData.x = Math.round(newPos.lng);
+                        // Use 1 decimal place for precision while keeping file size manageable
+                        markerData.y = Math.round(newPos.lat * 10) / 10;
+                        markerData.x = Math.round(newPos.lng * 10) / 10;
                         
                         if (bridge.dmModule && bridge.dmModule.updateMarkerPosition) {
                             bridge.dmModule.updateMarkerPosition(markerData);

@@ -27,18 +27,37 @@
         pathfinding = window.__nimea_pathfinding;
         visualizer = window.__nimea_visualizer;
         
-        // Set up sea travel checkbox listener
-        const seaTravelCheckbox = document.getElementById('sea-travel-checkbox');
-        if (seaTravelCheckbox) {
-            seaTravelCheckbox.addEventListener('change', () => {
+        // Initialize travel mode (default to horse)
+        if (!bridge.state.travelMode) {
+            bridge.state.travelMode = 'horse';
+        }
+        
+        // Set up travel mode selector listener (use delegation since it's dynamically rendered)
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'travel-mode-select') {
+                bridge.state.travelMode = e.target.value;
+                console.log(`Travel mode changed to: ${e.target.value}`);
+                // Invalidate graph when travel mode changes (affects sea vs land cost comparison)
+                invalidateGraph();
+                // Recompute route with new settings
+                if (bridge.state.route.length >= 2) {
+                    recomputeRoute();
+                }
+            }
+        });
+        
+        // Set up sea travel checkbox listener (also use delegation)
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'sea-travel-checkbox') {
+                console.log(`Sea travel ${e.target.checked ? 'enabled' : 'disabled'}`);
                 // Invalidate graph when sea travel option changes
                 invalidateGraph();
                 // Recompute route with new settings
                 if (bridge.state.route.length >= 2) {
                     recomputeRoute();
                 }
-            });
-        }
+            }
+        });
         
         console.log("Route core module initialized");
     }

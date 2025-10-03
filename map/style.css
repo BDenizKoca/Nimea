@@ -900,28 +900,91 @@ button.wiki-link {
     opacity: 0.9;
 }
 
-/* Terrain controls styling */
-.terrain-controls .leaflet-control-button {
-    width: 32px;
-    height: 32px;
-    line-height: 30px;
+/* ============================================
+   DM MODE CONTROLS - FIXED LAYOUT
+   ============================================ */
+
+/* Publish Controls - Vertical Stack */
+.dm-publish-controls {
+    min-width: 85px;
+}
+
+.dm-publish-controls .leaflet-control-button {
+    display: block;
+    width: 100%;
     text-align: center;
-    font-size: 16px;
+    padding: 8px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    font-size: 13px;
     text-decoration: none;
     color: #333;
     background: white;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
     cursor: pointer;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
-.terrain-controls .leaflet-control-button:hover {
+.dm-publish-controls .leaflet-control-button:hover {
     background: #f4f4f4;
 }
 
-.terrain-controls .leaflet-control-button.active {
+.dm-publish-controls .leaflet-control-button:first-child {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+.dm-publish-controls .leaflet-control-button:last-child {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.dm-dirty-indicator {
+    display: block;
+    margin-top: 4px;
+    font-size: 9px !important;
+    padding: 4px 6px !important;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Terrain controls styling - FIXED LAYOUT */
+.terrain-controls .leaflet-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.terrain-controls .leaflet-control-button,
+.terrain-controls #clear-terrain-mode {
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: center;
+    min-width: 90px;
+    text-decoration: none;
+    color: #333;
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: block;
+    box-sizing: border-box;
+}
+
+.terrain-controls .leaflet-control-button:hover,
+.terrain-controls #clear-terrain-mode:hover {
+    background: #f4f4f4;
+}
+
+.terrain-controls .terrain-mode-btn.active {
     background: #007cba;
     color: white;
+    font-weight: bold;
 }
 
 .terrain-controls .leaflet-control-button:first-child {
@@ -929,25 +992,34 @@ button.wiki-link {
     border-top-right-radius: 4px;
 }
 
-.terrain-controls .leaflet-control-button:last-child {
+.terrain-controls .leaflet-control-button:last-child,
+.terrain-controls #clear-terrain-mode {
     border-bottom-left-radius: 4px;
     border-bottom-right-radius: 4px;
     border-bottom: none;
 }
 
-/* Authentication controls styling */
+/* Authentication controls styling - FIXED LAYOUT */
+.auth-controls .leaflet-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
 .auth-controls .leaflet-control-button {
-    width: 32px;
-    height: 32px;
-    line-height: 30px;
+    padding: 7px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 75px;
     text-align: center;
-    font-size: 16px;
     text-decoration: none;
     color: #333;
     background: white;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
     cursor: pointer;
     transition: all 0.2s ease;
+    display: block;
+    box-sizing: border-box;
 }
 
 .auth-controls .leaflet-control-button:hover {
@@ -1398,6 +1470,30 @@ button:focus, .leaflet-control-button:focus {
         min-height: 20px;
         font-size: 11px;
         line-height: 20px;
+    }
+    
+    /* DM Controls - Mobile Responsive */
+    .dm-publish-controls .leaflet-control-button {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+    
+    .terrain-controls .leaflet-control-button,
+    .terrain-controls #clear-terrain-mode {
+        font-size: 11px;
+        padding: 7px 10px;
+        min-width: 80px;
+    }
+    
+    .auth-controls .leaflet-control-button {
+        font-size: 11px;
+        padding: 6px 8px;
+        min-width: 70px;
+    }
+    
+    .dm-dirty-indicator {
+        font-size: 8px !important;
+        padding: 3px 4px !important;
     }
 }
 

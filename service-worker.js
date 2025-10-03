@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nimea-cache-v3';
+const CACHE_NAME = 'nimea-cache-v4';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -20,6 +20,7 @@ const MAP_ASSETS = [
   '/map/js/ui.js',
   '/map/js/terrain.js',
   '/map/js/routing.js',
+  '/map/js/i18n.js',
   '/map/js/routing/route-core.js',
   '/map/js/routing/route-ui.js',
   '/map/js/routing/route-share.js',
@@ -30,6 +31,10 @@ const MAP_ASSETS = [
   '/map/js/routing/terrain-utils.js',
   '/map/js/routing/waypoint-manager.js',
   '/map/js/routing/route-drag-drop.js',
+  '/en/map/js/dm-controls.js',
+  '/en/map/js/dm-modals.js',
+  '/en/map/js/dm.js',
+  '/en/map/js/i18n.js',
   '/map/config.js',
   '/map/git-client.js',
   '/map/data/config.json',

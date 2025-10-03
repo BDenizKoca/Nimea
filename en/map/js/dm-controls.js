@@ -11,6 +11,24 @@
         constructor(bridge) {
             this.bridge = bridge;
             this.currentTerrainMode = null;
+            
+            // i18n helper - get current language from bridge
+            this.lang = bridge.state.lang || 'en';
+        }
+        
+        /**
+         * Translation helper function
+         * @param {string} key - Dot-notation key (e.g., 'dm.download')
+         * @returns {string} Translated string or key if not found
+         */
+        t(key) {
+            const keys = key.split('.');
+            let value = window.i18n?.[this.lang];
+            for (const k of keys) {
+                value = value?.[k];
+                if (value === undefined) break;
+            }
+            return value || key;
         }
 
         /**
@@ -19,6 +37,7 @@
         addAllControls() {
             this.addPublishControls();
             this.addTerrainModeControls();
+            this.addTerrainMergeButton();
             this.addBulkImportButton();
             this.addAuthenticationControls();
         }
@@ -34,11 +53,15 @@
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control dm-publish-controls');
                     container.style.display = 'flex';
                     container.style.flexDirection = 'column';
-                                        container.innerHTML = `
-                                            <a class="leaflet-control-button" id="dm-download-json" title="Download marker and terrain data">Download</a>
-                                            <a class="leaflet-control-button" id="dm-publish-json" title="Save changes to repository (login required)">Publish</a>
-                                            <span class="dm-dirty-indicator" style="display:none; background:#d9534f; color:#fff; font-size:10px; padding:2px 4px; text-align:center;">UNSAVED</span>
-                                        `;
+                    container.innerHTML = `
+                        <a class="leaflet-control-button" id="dm-download-json" 
+                           title="${self.t('dm.downloadTitle')}">${self.t('dm.download')}</a>
+                        <a class="leaflet-control-button" id="dm-publish-json" 
+                           title="${self.t('dm.publishTitle')}">${self.t('dm.publish')}</a>
+                        <span class="dm-dirty-indicator" style="display:none; background:#d9534f; color:#fff; font-size:10px; padding:2px 4px; text-align:center;">
+                            ${self.t('dm.unsaved')}
+                        </span>
+                    `;
                     
                     const downloadBtn = container.querySelector('#dm-download-json');
                     const publishBtn = container.querySelector('#dm-publish-json');
@@ -46,7 +69,7 @@
                     downloadBtn.onclick = () => self.bridge.dmModule.exportData();
                     publishBtn.onclick = async () => {
                         if (!self.bridge.state.dirty.markers && !self.bridge.state.dirty.terrain) {
-                            self.bridge.showNotification('No changes to publish', 'info');
+                            self.bridge.showNotification(self.t('dm.noChanges'), 'info');
                             return;
                         }
                         await self.bridge.dmModule.publishAll();
@@ -71,10 +94,16 @@
                     const container = L.DomUtil.create('div', 'terrain-controls');
                     container.innerHTML = `
                         <div class="leaflet-bar leaflet-control">
-                            <a class="leaflet-control-button terrain-mode-btn" data-mode="road" title="Paint roads">Road</a>
-                            <a class="leaflet-control-button terrain-mode-btn" data-mode="difficult" title="Zorlu araziyi boya">Zorlu</a>
-                            <a class="leaflet-control-button terrain-mode-btn" data-mode="unpassable" title="Paint impassable areas">Impassable</a>
-                            <a class="leaflet-control-button" id="clear-terrain-mode" title="Normal drawing">Normal</a>
+                            <a class="leaflet-control-button terrain-mode-btn" data-mode="road" 
+                               title="${self.t('dm.terrainRoadTitle')}">${self.t('dm.terrainRoad')}</a>
+                            <a class="leaflet-control-button terrain-mode-btn" data-mode="medium" 
+                               title="${self.t('dm.terrainMediumTitle')}">${self.t('dm.terrainMedium')}</a>
+                            <a class="leaflet-control-button terrain-mode-btn" data-mode="difficult" 
+                               title="${self.t('dm.terrainDifficultTitle')}">${self.t('dm.terrainDifficult')}</a>
+                            <a class="leaflet-control-button terrain-mode-btn" data-mode="unpassable" 
+                               title="${self.t('dm.terrainUnpassableTitle')}">${self.t('dm.terrainUnpassable')}</a>
+                            <a class="leaflet-control-button" id="clear-terrain-mode" 
+                               title="${self.t('dm.terrainNormalTitle')}">${self.t('dm.terrainNormal')}</a>
                         </div>
                     `;
                     
@@ -100,6 +129,29 @@
         }
 
         /**
+         * Adds the "Optimize Terrain" button (merge + simplify)
+         */
+        addTerrainMergeButton() {
+            const self = this;
+            const OptimizeButton = L.Control.extend({
+                options: { position: 'topleft' },
+                onAdd: function () {
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const button = L.DomUtil.create('a', 'leaflet-control-button', container);
+                    button.innerHTML = self.t('dm.optimizeTerrain');
+                    button.title = self.t('dm.optimizeTerrainTitle');
+                    button.onclick = () => {
+                        if (self.bridge.dmModule && self.bridge.dmModule.optimizeTerrain) {
+                            self.bridge.dmModule.optimizeTerrain();
+                        }
+                    };
+                    return container;
+                }
+            });
+            this.bridge.map.addControl(new OptimizeButton());
+        }
+
+        /**
          * Adds the "Import" button for bulk marker import.
          */
         addBulkImportButton() {
@@ -109,8 +161,8 @@
                 onAdd: function () {
                     const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
                     const button = L.DomUtil.create('a', 'leaflet-control-button', container);
-                    button.innerHTML = 'Import';
-                    button.title = 'Import markers from CSV';
+                    button.innerHTML = self.t('dm.import');
+                    button.title = self.t('dm.importTitle');
                     button.onclick = () => self.bridge.dmModule.openBulkImportModal();
                     return container;
                 }
@@ -129,8 +181,10 @@
                     const container = L.DomUtil.create('div', 'auth-controls');
                     container.innerHTML = `
                         <div class="leaflet-bar leaflet-control">
-                            <a class="leaflet-control-button" id="dm-login-btn" title="Login for live CMS">Login</a>
-                            <a class="leaflet-control-button" id="dm-status-btn" title="CMS durumu">Durum</a>
+                            <a class="leaflet-control-button" id="dm-login-btn" 
+                               title="${self.t('dm.loginTitle')}">${self.t('dm.login')}</a>
+                            <a class="leaflet-control-button" id="dm-status-btn" 
+                               title="${self.t('dm.statusTitle')}">${self.t('dm.status')}</a>
                         </div>
                     `;
                     
@@ -149,14 +203,14 @@
                             }
                         } catch (e) {
                             console.error('Login button error:', e);
-                            self.bridge.showNotification('Authentication unavailable (check console).', 'error');
+                            self.bridge.showNotification(self.t('dm.notifications.authNotInitialized'), 'error');
                         }
                     });
 
                     statusBtn.addEventListener('click', () => {
                         const status = self.bridge.state.isLiveCMS 
-                            ? 'Live CMS: Changes are automatically saved to repository' 
-                            : 'Offline Mode: Use Export button to save data';
+                            ? self.t('dm.notifications.authStatusAuthenticated')
+                            : self.t('dm.notifications.authStatusNotAuthenticated');
                         self.bridge.showNotification(status, 'info');
                     });
 
@@ -166,12 +220,12 @@
                         window.netlifyIdentity.on('login', () => {
                             self.bridge.state.isLiveCMS = true;
                             self.updateAuthUI();
-                            self.bridge.showNotification('Live CMS mode enabled', 'success');
+                            self.bridge.showNotification(self.t('dm.notifications.loginSuccess'), 'success');
                         });
                         window.netlifyIdentity.on('logout', () => {
                             self.bridge.state.isLiveCMS = false;
                             self.updateAuthUI();
-                            self.bridge.showNotification('Logged out. Switched to offline mode.', 'info');
+                            self.bridge.showNotification(self.t('dm.notifications.logoutSuccess'), 'info');
                         });
                     }
 
@@ -187,8 +241,12 @@
          */
         setTerrainMode(mode) {
             this.currentTerrainMode = mode;
-            const modeEn = mode === 'road' ? 'Road' : mode === 'difficult' ? 'Difficult' : mode === 'unpassable' ? 'Impassable' : mode;
-            this.bridge.showNotification(`Terrain mode: ${modeEn}. Draw polygons/lines to paint terrain.`, 'success');
+            const modeKey = mode === 'road' ? 'terrainRoad' : 
+                           mode === 'medium' ? 'terrainMedium' :
+                           mode === 'difficult' ? 'terrainDifficult' : 
+                           mode === 'unpassable' ? 'terrainUnpassable' : 'terrainNormal';
+            const modeName = this.t(`dm.${modeKey}`);
+            this.bridge.showNotification(`${modeName}: ${this.t(`dm.${modeKey}Title`)}`, 'success');
         }
 
         /**
@@ -196,7 +254,7 @@
          */
         clearTerrainMode() {
             this.currentTerrainMode = null;
-            this.bridge.showNotification('Normal drawing kipi etkin', 'success');
+            this.bridge.showNotification(this.t('dm.terrainNormalTitle'), 'success');
         }
 
         /**
@@ -234,12 +292,15 @@
             const isAuthenticated = window.gitClient && window.gitClient.isAuthenticated;
 
             if (loginBtn) {
-                loginBtn.textContent = isAuthenticated ? 'Logout' : 'Login';
-                loginBtn.title = isAuthenticated ? 'Logout' : 'Login for live CMS';
+                loginBtn.textContent = isAuthenticated ? this.t('dm.logout') : this.t('dm.login');
+                loginBtn.title = isAuthenticated ? this.t('dm.logout') : this.t('dm.loginTitle');
             }
             
             if (statusBtn) {
-                statusBtn.textContent = this.bridge.state.isLiveCMS ? 'Status: Live' : 'Status: Offline';
+                const statusText = this.bridge.state.isLiveCMS ? 
+                    this.t('dm.notifications.authStatusAuthenticated') : 
+                    this.t('dm.notifications.authStatusNotAuthenticated');
+                statusBtn.textContent = `${this.t('dm.status')}: ${statusText}`;
                 statusBtn.style.color = this.bridge.state.isLiveCMS ? '#28a745' : '#6c757d';
             }
             

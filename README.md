@@ -10,26 +10,19 @@ Live Site: https://nimea-wiki.netlify.app/
 
 ## Features
 
+### Wiki & Content Management
 - Wiki with categories for Characters, Locations, Nations & Factions, Gods & Religions, Magic & Powers
 - Visual CMS (Decap) for editing content through the browser
+- Global search functionality on wiki pages
+- Automatic map integration: markers can link to relevant wiki pages (optional custom slug)
+
+### Interactive Map
 - Full-screen Leaflet map with pan/zoom, overlays, and info-rich markers
-- Route planning (player mode) with distance and travel-time estimates
+- Route planning with distance and travel-time estimates
 - Shareable route links (copy a URL that reconstructs the same markers & waypoints)
- - Route editing & data maintenance tools (internal-only)
 - Terrain-aware A* pathfinding that respects road/difficult/unpassable costs
-- Automatic wiki integration: markers can link to relevant wiki pages (optional custom slug)
-
-Quality-of-life and polish:
-- Bilingual TR/EN for both wiki and map (shared data and scripts; no duplication)
-- Advanced panel with travel profile selector (Wagon/Horse/Foot), proportional day markers (End of Day N), fully localized
+- Advanced panel with travel profile selector (Wagon/Horse/Foot), proportional day markers (End of Day N)
 - PWA support: installable app with offline fallback after first load
-- DM image management: add/remove image URLs per marker and set/clear a banner image shown above the title in the info sidebar
-- Global search on wiki pages (intentionally not on map)
-
-Single source of truth (no drift):
-- Both TR (`/map`) and EN (`/en/map`) load the same data from `map/data`.
-- Both languages reuse the same map modules in `map/js/*`.
-- Only EN-specific files are localized strings (`en/map/js/i18n.js`) and DM UI text (`en/map/js/dm-*.js`).
 
 ---
 
@@ -94,10 +87,13 @@ No compression yet (links stay readable); can migrate to a `v2` format later if 
 
 ## Tech Stack
 
-- Eleventy (11ty) for static-site generation
-- Decap CMS for content editing and Git-based publishing
-- Leaflet.js and Leaflet-Geoman for mapping and editing
-- Netlify for hosting, identity, and build pipelines
+- **Eleventy (11ty)** - Static-site generation
+- **Decap CMS** - Content editing and Git-based publishing
+- **Leaflet.js** - Interactive mapping
+- **Leaflet-Geoman** - DM drawing/editing tools
+- **Turf.js** - Geometric operations (terrain merging/simplification)
+- **Netlify** - Hosting, identity, and build pipelines
+- **Custom A* pathfinding** - Terrain-aware route calculation
 
 ---
 

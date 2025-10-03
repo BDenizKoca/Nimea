@@ -62,9 +62,12 @@
                     const currentNode = graph.nodes.get(current);
                     const neighborNode = graph.nodes.get(neighbor);
                     
+                    // Calculate edge cost
+                    let edgeCost = edge.distance * edge.cost;
+                    
                     // Port gate logic: Check if transitioning between land and water
                     if (currentNode.isWater !== undefined && neighborNode.isWater !== undefined) {
-                        // Crossing land/water boundary
+                        // Crossing land/water boundary - only allowed at ports
                         if (currentNode.isWater !== neighborNode.isWater) {
                             // Check if either current or neighbor is a port
                             const currentIsPort = isPortNode(current, graph.nodes);
@@ -77,7 +80,7 @@
                         }
                     }
                     
-                    const tentativeGScore = gScore.get(current) + (edge.distance * edge.cost);
+                    const tentativeGScore = gScore.get(current) + edgeCost;
                     
                     if (tentativeGScore < gScore.get(neighbor)) {
                         cameFrom.set(neighbor, current);
@@ -103,8 +106,8 @@
         const node = nodesMap.get(nodeId);
         if (!node) return false;
         
-        // Check if this is a marker node
-        if (node.type === 'marker_node') {
+        // Check if this is a marker node (type is 'marker' not 'marker_node')
+        if (node.type === 'marker') {
             // Access global bridge to check if marker has isPort flag
             if (window.bridge && window.bridge.state && window.bridge.state.markers) {
                 const marker = window.bridge.state.markers.find(m => m.id === node.markerId);

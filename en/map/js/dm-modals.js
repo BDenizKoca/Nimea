@@ -12,6 +12,24 @@
             this.bridge = bridge;
             this.pendingMarker = null;
             this.pendingTerrain = null;
+            
+            // i18n helper - get current language from bridge
+            this.lang = bridge.state.lang || 'en';
+        }
+        
+        /**
+         * Translation helper function
+         * @param {string} key - Dot-notation key (e.g., 'dm.markerSaved')
+         * @returns {string} Translated string or key if not found
+         */
+        t(key) {
+            const keys = key.split('.');
+            let value = window.i18n?.[this.lang];
+            for (const k of keys) {
+                value = value?.[k];
+                if (value === undefined) break;
+            }
+            return value || key;
         }
 
         /**
@@ -86,14 +104,14 @@
             const addImageRow = (val = '') => {
                 const row = document.createElement('div');
                 row.className = 'image-list-item';
-                row.innerHTML = `<input type="url" placeholder="https://... or images/sample.jpg" value="${val}"><button type="button" class="remove-image">Remove</button>`;
+                row.innerHTML = `<input type="url" placeholder="${this.t('dm.markerImageUrlPlaceholder')}" value="${val}"><button type="button" class="remove-image">${this.t('dm.markerRemoveImage')}</button>`;
                 row.querySelector('.remove-image').addEventListener('click', () => row.remove());
                 imagesListEl.appendChild(row);
             };
             addImageBtn?.addEventListener('click', () => {
                 const v = (imageUrlInput?.value || '').trim();
                 if (!v) {
-                    this.bridge.showNotification('Please enter an image URL', 'error');
+                    this.bridge.showNotification(this.t('dm.notifications.enterImageUrl'), 'error');
                     return;
                 }
                 addImageRow(v);
@@ -196,8 +214,8 @@
             if (imagesListEl) imagesListEl.innerHTML = '';
             
             // Update UI for creation mode
-            title.textContent = 'Create New Marker';
-            saveBtn.textContent = 'Create Marker';
+            title.textContent = this.t('dm.markerCreateTitle');
+            saveBtn.textContent = this.t('dm.markerSave');
             
             // Store raw coordinates in hidden fields
             document.getElementById('marker-lat').value = latLng.lat;
@@ -232,8 +250,8 @@
             form.dataset.originalId = markerData.id;
             
             // Update UI for edit mode
-            title.textContent = 'Edit Marker';
-            saveBtn.textContent = 'Save Changes';
+            title.textContent = this.t('dm.markerEditTitle');
+            saveBtn.textContent = this.t('dm.markerUpdate');
             
             // Fill in all existing values
             document.getElementById('marker-name').value = markerData.name || '';
@@ -314,7 +332,7 @@
             
             // When editing, we don't need a pending marker
             if (!isEditMode && !this.pendingMarker) {
-                this.bridge.showNotification('Error: No pending marker to save. Please try again.', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 document.getElementById('marker-creation-modal').classList.add('hidden');
                 return;
             }
@@ -388,27 +406,27 @@
          */
         validateMarkerData(id, name, summary, lat, lng, isEditMode, originalId) {
             if (!id || !name || !summary) {
-                this.bridge.showNotification('Please fill in all required fields', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return false;
             }
             if (isNaN(lat) || isNaN(lng)) {
-                this.bridge.showNotification('Error: Invalid coordinates. Please place the marker again.', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return false;
             }
             if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-                this.bridge.showNotification('ID can only contain letters, numbers, hyphens, and underscores', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return false;
             }
             
             // Check for ID conflicts, but allow the same ID when editing
             if (!isEditMode && this.bridge.state.markers.some(m => m.id === id)) {
-                this.bridge.showNotification('Marker ID already exists', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return false;
             }
             
             // Also check if we're editing but changing the ID to one that already exists
             if (isEditMode && id !== originalId && this.bridge.state.markers.some(m => m.id === id)) {
-                this.bridge.showNotification('Cannot change ID: another marker with this ID already exists', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return false;
             }
 
@@ -423,7 +441,7 @@
         updateExistingMarker(markerData, originalId) {
             const markerIndex = this.bridge.state.markers.findIndex(m => m.id === originalId);
             if (markerIndex === -1) {
-                this.bridge.showNotification('Error: Could not find original marker to update', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.markerDeleteError'), 'error');
                 return;
             }
             
@@ -447,7 +465,7 @@
             }
             
             console.log('Marker updated:', markerData.name);
-            this.bridge.showNotification(`Marker "${markerData.name}" updated successfully!`, 'success');
+            this.bridge.showNotification(this.t('dm.notifications.markerUpdated'), 'success');
         }
 
         /**
@@ -489,7 +507,7 @@
             this.pendingMarker = null;
             
             console.log('New marker created:', markerData.name);
-            this.bridge.showNotification(`Marker "${markerData.name}" created successfully!`, 'success');
+            this.bridge.showNotification(this.t('dm.notifications.markerSaved'), 'success');
         }
 
         /**
@@ -512,7 +530,7 @@
                 this.bridge.terrainModule.renderTerrain();
             }
             
-            this.bridge.showNotification(`${terrainType} terrain added`, 'success');
+            this.bridge.showNotification(this.t('dm.notifications.terrainSaved'), 'success');
             this.bridge.markDirty('terrain');
 
             // Refresh publish UI so the UNSAVED badge / button state updates immediately
@@ -542,12 +560,95 @@
         }
 
         /**
+         * Merges adjacent terrain features of the same type using Turf.js
+         * @param {string} terrainType - The terrain type to merge
+         * @returns {boolean} Whether merge was successful
+         */
+        mergeTerrainType(terrainType) {
+            if (typeof turf === 'undefined') {
+                console.warn('Turf.js not loaded, cannot merge terrain');
+                return false;
+            }
+            
+            // Get all features of this type
+            const features = this.bridge.state.terrain.features.filter(
+                f => f.properties.kind === terrainType
+            );
+            
+            if (features.length < 2) {
+                console.log(`Only ${features.length} ${terrainType} feature(s), nothing to merge`);
+                return false;
+            }
+            
+            try {
+                console.log(`Attempting to merge ${features.length} ${terrainType} features...`);
+                
+                // Start with the first feature
+                let merged = turf.feature(features[0].geometry, { kind: terrainType });
+                
+                // Union with each subsequent feature
+                for (let i = 1; i < features.length; i++) {
+                    const nextFeature = turf.feature(features[i].geometry);
+                    merged = turf.union(merged, nextFeature);
+                }
+                
+                // Remove old individual features
+                this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
+                    f => f.properties.kind !== terrainType
+                );
+                
+                // Add the merged feature with proper properties
+                merged.properties = {
+                    kind: terrainType,
+                    _internal_id: `terrain_${terrainType}_merged_${Date.now()}`
+                };
+                
+                this.bridge.state.terrain.features.push(merged);
+                
+                console.log(`✅ Merged ${features.length} ${terrainType} features into 1`);
+                
+                // Re-render terrain to show merged result
+                if (this.bridge.terrainModule) {
+                    this.bridge.terrainModule.renderTerrain();
+                }
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Error merging terrain features:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Merges all terrain types
+         */
+        mergeAllTerrain() {
+            const types = ['road', 'medium', 'difficult', 'unpassable'];
+            let mergedCount = 0;
+            
+            types.forEach(type => {
+                if (this.mergeTerrainType(type)) {
+                    mergedCount++;
+                }
+            });
+            
+            if (mergedCount > 0) {
+                const msg = this.t('dm.notifications.terrainMerged').replace('{{count}}', mergedCount);
+                this.bridge.showNotification(msg, 'success');
+                this.bridge.markDirty('terrain');
+            } else {
+                this.bridge.showNotification(this.t('dm.notifications.noTerrainToMerge'), 'info');
+            }
+        }
+
+        /**
          * Processes bulk CSV import
          * @param {string} csvData - The CSV data to import
          */
         processBulkImport(csvData) {
             if (!csvData.trim()) {
-                this.bridge.showNotification('Please enter CSV data', 'error');
+                this.bridge.showNotification(this.t('dm.notifications.importInvalidCsv'), 'error');
                 return;
             }
 
@@ -614,12 +715,13 @@
             });
 
             if (imported > 0) {
-                this.bridge.showNotification(`Imported ${imported} markers (not published yet)`, 'success');
+                const msg = this.t('dm.notifications.importSuccess').replace('{{count}}', imported);
+                this.bridge.showNotification(msg, 'success');
                 this.bridge.markDirty('markers');
             }
             if (errors.length > 0) {
                 console.warn('Import errors:', errors);
-                this.bridge.showNotification(`Imported ${imported} with ${errors.length} errors. See console.`, 'error');
+                this.bridge.showNotification(this.t('dm.notifications.importError'), 'error');
             }
 
             document.getElementById('bulk-import-modal').classList.add('hidden');
@@ -721,6 +823,127 @@
                     });
                 }
             });
+        }
+
+        /**
+         * Counts the number of coordinate nodes in a geometry
+         * @param {object} geometry - GeoJSON geometry object
+         * @returns {number} Total number of coordinate nodes
+         */
+        countNodes(geometry) {
+            let count = 0;
+            
+            if (geometry.type === 'Polygon') {
+                geometry.coordinates.forEach(ring => {
+                    count += ring.length;
+                });
+            } else if (geometry.type === 'MultiPolygon') {
+                geometry.coordinates.forEach(polygon => {
+                    polygon.forEach(ring => {
+                        count += ring.length;
+                    });
+                });
+            } else if (geometry.type === 'LineString') {
+                count = geometry.coordinates.length;
+            } else if (geometry.type === 'MultiLineString') {
+                geometry.coordinates.forEach(line => {
+                    count += line.length;
+                });
+            }
+            
+            return count;
+        }
+
+        /**
+         * Simplifies terrain features by removing unnecessary nodes
+         * Uses Douglas-Peucker algorithm (via Turf.js)
+         * @param {number} tolerance - Simplification tolerance (default: 0.002)
+         * @returns {object} Statistics about the simplification
+         */
+        simplifyAllTerrain(tolerance = 0.002) {
+            if (typeof turf === 'undefined') {
+                console.warn('Turf.js not loaded, cannot simplify terrain');
+                return { success: false, error: 'Turf.js not available' };
+            }
+            
+            let totalBefore = 0;
+            let totalAfter = 0;
+            let featuresProcessed = 0;
+            
+            // Process each terrain feature
+            this.bridge.state.terrain.features = this.bridge.state.terrain.features.map(feature => {
+                try {
+                    // Count nodes before
+                    const nodesBefore = this.countNodes(feature.geometry);
+                    totalBefore += nodesBefore;
+                    
+                    // Simplify the geometry
+                    const simplified = turf.simplify(feature, {
+                        tolerance: tolerance,
+                        highQuality: true // Use high-quality algorithm
+                    });
+                    
+                    // Preserve properties
+                    simplified.properties = feature.properties;
+                    
+                    // Count nodes after
+                    const nodesAfter = this.countNodes(simplified.geometry);
+                    totalAfter += nodesAfter;
+                    
+                    featuresProcessed++;
+                    
+                    console.log(`Simplified ${feature.properties.kind}: ${nodesBefore} → ${nodesAfter} nodes`);
+                    
+                    return simplified;
+                    
+                } catch (error) {
+                    console.warn('Could not simplify feature:', error);
+                    return feature; // Keep original if simplification fails
+                }
+            });
+            
+            // Re-render terrain to show simplified result
+            if (this.bridge.terrainModule) {
+                this.bridge.terrainModule.renderTerrain();
+            }
+            
+            const reduction = totalBefore > 0 ? ((totalBefore - totalAfter) / totalBefore * 100).toFixed(1) : 0;
+            
+            return {
+                success: true,
+                featuresProcessed,
+                nodesBefore: totalBefore,
+                nodesAfter: totalAfter,
+                reduction: `${reduction}%`
+            };
+        }
+
+        /**
+         * Combined optimize function: merge + simplify
+         * This is the main entry point for terrain optimization
+         */
+        optimizeTerrain() {
+            console.log('🔧 Starting terrain optimization...');
+            
+            // Step 1: Merge adjacent features of same type
+            console.log('Step 1: Merging adjacent features...');
+            this.mergeAllTerrain();
+            
+            // Step 2: Simplify all features
+            console.log('Step 2: Simplifying geometries...');
+            const stats = this.simplifyAllTerrain(0.002); // Conservative tolerance
+            
+            if (stats.success) {
+                const message = this.t('dm.notifications.terrainOptimized')
+                    .replace('{{before}}', stats.nodesBefore)
+                    .replace('{{after}}', stats.nodesAfter)
+                    .replace('{{reduction}}', stats.reduction);
+                this.bridge.showNotification(message, 'success');
+                this.bridge.markDirty('terrain');
+                console.log('✅ Optimization complete:', stats);
+            } else {
+                this.bridge.showNotification(this.t('dm.notifications.terrainOptimizeFailed'), 'error');
+            }
         }
     }
 

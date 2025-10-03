@@ -47,13 +47,15 @@
     let pathNaturalizer = null;
 
     // Configuration constants
+    // Time multipliers: How much time it takes to cross terrain (lower = faster)
     const TERRAIN_COSTS = {
-        road: 1.0,       // Primary paths: roads are fastest (cost = 1)
-        difficult: 5.0,  // Existing difficult terrain (matches DM mode)
-        medium: 3.0,     // Medium difficulty terrain (engebeli) - moderate difficulty
-        unpassable: 50.0, // High cost but not infinite - allow pathfinding around
-        blocked: 50.0,   // High cost but not infinite - allow pathfinding around
-        normal: 2.0      // Default fallback terrain for empty areas
+        road: 0.7,       // Roads are 30% faster than normal terrain
+        normal: 1.0,     // Baseline travel time (open plains, etc.)
+        medium: 1.5,     // 50% more time (hills, light forest)
+        difficult: 2.0,  // 2x more time (mountains, dense forest)
+        unpassable: 50.0, // Effectively blocked on land
+        blocked: 50.0,   // Water when sea travel disabled
+        sea: 0.25        // Sea travel: 120 km/day vs 30 km/day walking = 4x faster
     };
 
     const TERRAIN_GRID_SIZE = 25;  // Denser grid for better connectivity

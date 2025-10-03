@@ -66,11 +66,13 @@
         }
     };
 
-    let currentLang = 'en';
+    let currentLang = 'tr';
 
     function initI18n() {
-        // For English version, always use English
-        currentLang = 'en';
+        // Detect language from URL
+        if (window.location.pathname.startsWith('/en')) {
+            currentLang = 'en';
+        }
         
         // Update document language
         document.documentElement.lang = currentLang;
@@ -82,7 +84,7 @@
     function t(key, ...args) {
         let value = translations[currentLang][key];
         if (!value) {
-            value = translations['en'][key] || key;
+            value = translations['tr'][key] || key;
         }
         
         // Replace placeholders with arguments
@@ -127,11 +129,29 @@
         return map[typeKey] || typeKey;
     }
 
+    // Load full i18n data from JSON file for DM module
+    async function loadI18nData() {
+        try {
+            const response = await fetch('/_data/i18n.json');
+            const data = await response.json();
+            window.i18n = data; // Expose for DM modules
+            console.log('i18n data loaded for DM modules');
+        } catch (error) {
+            console.warn('Could not load _data/i18n.json:', error);
+            // Fallback: use inline translations
+            window.i18n = { tr: translations.tr, en: translations.en };
+        }
+    }
+
     // Initialize on DOM ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initI18n);
+        document.addEventListener('DOMContentLoaded', () => {
+            initI18n();
+            loadI18nData();
+        });
     } else {
         initI18n();
+        loadI18nData();
     }
 
     // Export functions

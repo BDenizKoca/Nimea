@@ -269,6 +269,8 @@ Thornhold,2000,1500,fortress,Empire,Dağ kalesi,true"></textarea>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    <!-- Turf.js for DM terrain merge operations -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
     <!-- Netlify Identity for DM authentication -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script src="/map/config.js"></script>
@@ -291,10 +293,10 @@ Thornhold,2000,1500,fortress,Empire,Dağ kalesi,true"></textarea>
     <script src="/map/js/routing.js"></script>
     <!-- Internationalization -->
     <script src="js/i18n.js"></script>
-    <!-- DM Module Components (TR-specific to keep UI strings localized) -->
-    <script src="js/dm-controls.js"></script>
-    <script src="js/dm-modals.js"></script>
-    <script src="js/dm.js"></script>
+    <!-- DM Module Components (Shared - language-agnostic with i18n) -->
+    <script src="../en/map/js/dm-controls.js"></script>
+    <script src="../en/map/js/dm-modals.js"></script>
+    <script src="../en/map/js/dm.js"></script>
     <!-- End DM Module Components -->
     <script src="/map/js/ui.js"></script>
     <script src="/map/js/direct-touch.js"></script>

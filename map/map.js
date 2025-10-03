@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const identityDm = !!(window.netlifyIdentity && typeof window.netlifyIdentity.currentUser === 'function' && window.netlifyIdentity.currentUser());
 
     const config = {
-        kmPerPixel: 50 / 115, // 0.4347826087 (115 pixels = 50 km)
+        kmPerPixel: 100 / 115, // 0.8695652174 (115 pixels = 100 km)
         profiles: {
             walk: { speed: 30, cost: 1.0 },
             wagon: { speed: 50, cost: 0.8 },

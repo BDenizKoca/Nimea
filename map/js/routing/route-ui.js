@@ -120,10 +120,20 @@
                         </div>`;
     }).join('') + (bridge.state.route.length ? `<div class="route-actions">
         <button id="clear-route-btn" class="wiki-link clear-route-btn">${window.nimeaI18n ? window.nimeaI18n.t('clearRoute') : (window.location.pathname.startsWith('/en') ? 'Clear Route' : 'Rotayı Temizle')}</button>
-        <label class="sea-travel-option">
-            <input type="checkbox" id="sea-travel-checkbox">
-            <span>${window.location.pathname.startsWith('/en') ? 'Enable Sea Travel' : 'Deniz Yolu Kullan'}</span>
-        </label>
+        
+        <div class="travel-options">
+            <label class="travel-mode-label">${window.location.pathname.startsWith('/en') ? 'Travel Mode:' : 'Seyahat Yöntemi:'}</label>
+            <select id="travel-mode-select" class="travel-mode-select">
+                <option value="walking">${window.location.pathname.startsWith('/en') ? 'Walking (30 km/day)' : 'Yürüyerek (30 km/gün)'}</option>
+                <option value="wagon">${window.location.pathname.startsWith('/en') ? 'Wagon (50 km/day)' : 'Araba (50 km/gün)'}</option>
+                <option value="horse" selected>${window.location.pathname.startsWith('/en') ? 'Horse (60 km/day)' : 'At (60 km/gün)'}</option>
+            </select>
+            
+            <label class="sea-travel-option">
+                <input type="checkbox" id="sea-travel-checkbox">
+                <span>${window.location.pathname.startsWith('/en') ? 'Sea Travel (120 km/day)' : 'Deniz Yolu (120 km/gün)'}</span>
+            </label>
+        </div>
             </div>` : '');
         
             // Event delegation handles all button clicks automatically

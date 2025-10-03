@@ -136,11 +136,19 @@
         for (let x = mapBounds.minX; x <= mapBounds.maxX; x += TERRAIN_GRID_SIZE) {
             for (let y = mapBounds.minY; y <= mapBounds.maxY; y += TERRAIN_GRID_SIZE) {
                 const nodeId = `terrain_${Math.round(x)}_${Math.round(y)}`;
-                let terrainCost = getTerrainCostAtPoint(x, y);
+                const originalCost = getTerrainCostAtPoint(x, y);
                 
-                // If this is water (blocked/unpassable) and sea travel is enabled, make it navigable
-                if ((terrainCost === TERRAIN_COSTS.blocked || terrainCost === 999) && seaTravelEnabled) {
-                    terrainCost = 1.0; // Normal cost for sea travel (120 km/day like normal land)
+                // Determine if this is water BEFORE sea toggle modifies cost
+                const isWaterNode = (originalCost === TERRAIN_COSTS.blocked || 
+                                     originalCost === TERRAIN_COSTS.unpassable || 
+                                     originalCost >= 50.0);
+                
+                // If this is water and sea travel is enabled, make it navigable
+                let terrainCost = originalCost;
+                if (isWaterNode && seaTravelEnabled) {
+                    // Sea travel: 120 km/day vs 30 km/day walking = 4x faster
+                    // Cost = 0.25 (time multiplier: takes 1/4 the time)
+                    terrainCost = TERRAIN_COSTS.sea;
                 }
                 
                 // Add all nodes, even high-cost ones (no infinite costs anymore)
@@ -149,7 +157,7 @@
                     y: y,
                     type: 'terrain_node',
                     terrainCost: terrainCost,
-                    isWater: (getTerrainCostAtPoint(x, y) === TERRAIN_COSTS.blocked || getTerrainCostAtPoint(x, y) === 999)
+                    isWater: isWaterNode  // Based on original terrain, not modified cost
                 });
                 terrainNodes.set(`${Math.round(x)},${Math.round(y)}`, nodeId);
             }
