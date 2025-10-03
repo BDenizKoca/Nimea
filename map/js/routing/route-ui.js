@@ -120,6 +120,10 @@
                         </div>`;
     }).join('') + (bridge.state.route.length ? `<div class="route-actions">
         <button id="clear-route-btn" class="wiki-link clear-route-btn">${window.nimeaI18n ? window.nimeaI18n.t('clearRoute') : (window.location.pathname.startsWith('/en') ? 'Clear Route' : 'Rotayı Temizle')}</button>
+        <label class="sea-travel-option">
+            <input type="checkbox" id="sea-travel-checkbox">
+            <span>${window.location.pathname.startsWith('/en') ? 'Enable Sea Travel' : 'Deniz Yolu Kullan'}</span>
+        </label>
             </div>` : '');
         
             // Event delegation handles all button clicks automatically

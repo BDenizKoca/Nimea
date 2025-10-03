@@ -1014,7 +1014,12 @@ button.wiki-link {
 
 
 /* Center Clear Route button and unify sizing */
-.route-actions { display: flex; justify-content: center; margin: 12px 0; }
+.route-actions { 
+    display: flex; 
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0; 
+}
 .route-actions .clear-route-btn {
     display: inline-flex;
     align-items: center;
@@ -1023,6 +1028,31 @@ button.wiki-link {
     padding: 8px 16px;
     font-size: 14px;
     line-height: 1.2;
+}
+
+/* Sea travel checkbox styling */
+.sea-travel-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 14px;
+}
+.sea-travel-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.sea-travel-option input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+.sea-travel-option span {
+    user-select: none;
 }
 @media (min-width: 701px) {
     .route-actions .clear-route-btn {
