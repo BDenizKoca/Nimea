@@ -10,6 +10,9 @@
     let dmControls = null;
     let dmModals = null;
 
+    // Track the most recently selected vertex during editing
+    let selectedVertexInfo = null;
+
     /**
      * Initializes the DM module.
      * This function is called by the main map script.
@@ -43,6 +46,7 @@
             updateMarkerPosition,
             editMarker: (markerData) => dmModals.editMarker(markerData),
             deleteMarker,
+            deleteSelectedVertex,
             openBulkImportModal: () => dmModals.openBulkImportModal(),
             mergeSelectedPolygons: () => dmModals.mergeSelectedPolygons(),
             exportData,
@@ -125,6 +129,12 @@
      * Sets up all map event listeners for Geoman interactions
      */
     function setupMapEventListeners() {
+        // Track vertex selections for node deletion
+        bridge.map.on('pm:vertexclick', handleVertexClick);
+        bridge.map.on('pm:globaleditmodeend', clearSelectedVertex);
+        bridge.map.on('pm:drawstart', clearSelectedVertex);
+        bridge.map.on('pm:drawend', clearSelectedVertex);
+
         // Listen for new shapes created by Geoman
         bridge.map.on('pm:create', async (e) => {
             if (e.shape === 'Marker') {
@@ -140,6 +150,9 @@
 
         // Listen for shapes being removed by Geoman
         bridge.map.on('pm:remove', (e) => {
+            if (selectedVertexInfo && selectedVertexInfo.layer === e.layer) {
+                clearSelectedVertex();
+            }
             if (e.layer && e.layer.feature) {
                 const removedId = e.layer.feature.properties._internal_id;
                 if (!removedId) return; 
@@ -268,6 +281,300 @@
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+    }
+
+
+    /**
+     * Clears the stored vertex selection metadata.
+     */
+    function clearSelectedVertex() {
+        selectedVertexInfo = null;
+    }
+
+    /**
+     * Handles vertex click events so we can remove them via a dedicated control.
+     * @param {object} event - Leaflet-Geoman vertex click event payload
+     */
+    function handleVertexClick(event) {
+        if (!event || !event.layer || !event.marker) {
+            return;
+        }
+
+        const layer = event.layer;
+        const latlng = event.marker.getLatLng ? event.marker.getLatLng() : event.latlng;
+        if (!latlng) {
+            return;
+        }
+
+        const path = findLatLngPath(layer.getLatLngs(), latlng);
+        if (!path) {
+            console.warn('Could not determine vertex index path for deletion.');
+            selectedVertexInfo = null;
+            return;
+        }
+
+        const featureId = layer.feature?.properties?._internal_id || null;
+        const isPendingTerrain = !!(dmModals && dmModals.pendingTerrain === layer);
+        const geometryType = detectLayerGeometry(layer);
+
+        selectedVertexInfo = {
+            layer,
+            path,
+            geometryType,
+            featureId,
+            isPendingTerrain
+        };
+    }
+
+    /**
+     * Deletes the currently selected vertex from its parent layer.
+     */
+    function deleteSelectedVertex() {
+        if (!selectedVertexInfo) {
+            bridge.showNotification('Select a vertex in edit mode, then press Delete Node.', 'info');
+            return;
+        }
+
+        const { layer, path, geometryType, featureId, isPendingTerrain } = selectedVertexInfo;
+        if (!layer || !layer._map) {
+            bridge.showNotification('The selected layer is no longer active.', 'error');
+            clearSelectedVertex();
+            return;
+        }
+
+        const removal = removeLatLngAtPath(layer.getLatLngs(), path, geometryType);
+        if (!removal.success) {
+            bridge.showNotification(removal.message || 'Unable to remove vertex.', 'error');
+            return;
+        }
+
+        layer.setLatLngs(removal.latlngs);
+        if (typeof layer.redraw === 'function') {
+            layer.redraw();
+        }
+
+        if (layer.pm && typeof layer.pm.disable === 'function' && typeof layer.pm.enable === 'function') {
+            try {
+                layer.pm.disable();
+                layer.pm.enable();
+            } catch (err) {
+                console.warn('Could not refresh Geoman edit state after vertex deletion:', err);
+            }
+        }
+
+        if (!isPendingTerrain && featureId) {
+            const feature = bridge.state.terrain.features.find(f => f.properties?._internal_id === featureId);
+            if (feature) {
+                feature.geometry = layer.toGeoJSON().geometry;
+                bridge.markDirty('terrain');
+            }
+        }
+
+        bridge.showNotification('Vertex removed.', 'success');
+        clearSelectedVertex();
+    }
+
+    /**
+     * Determines the geometry type for the provided layer.
+     * @param {L.Layer} layer
+     * @returns {string}
+     */
+    function detectLayerGeometry(layer) {
+        if (!layer) {
+            return 'Unknown';
+        }
+        if (layer.feature && layer.feature.geometry && layer.feature.geometry.type) {
+            return layer.feature.geometry.type;
+        }
+        if (layer.pm && typeof layer.pm.getShape === 'function') {
+            return layer.pm.getShape();
+        }
+        if (layer instanceof L.Polygon) {
+            return 'Polygon';
+        }
+        if (layer instanceof L.Polyline) {
+            return 'LineString';
+        }
+        return 'Unknown';
+    }
+
+    /**
+     * Recursively locates the index path for a given latlng.
+     * @param {Array} latlngs
+     * @param {L.LatLng} target
+     * @param {Array<number>} [path]
+     * @returns {Array<number>|null}
+     */
+    function findLatLngPath(latlngs, target, path = []) {
+        if (!Array.isArray(latlngs)) {
+            return null;
+        }
+        for (let i = 0; i < latlngs.length; i++) {
+            const value = latlngs[i];
+            if (Array.isArray(value)) {
+                const nested = findLatLngPath(value, target, path.concat(i));
+                if (nested) {
+                    return nested;
+                }
+            } else if (value && typeof value.lat === 'number' && typeof value.lng === 'number') {
+                if (latLngsEqual(value, target)) {
+                    return path.concat(i);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Removes a latlng from the nested structure at the provided path.
+     * @param {Array} latlngs
+     * @param {Array<number>} path
+     * @param {string} geometryType
+     * @returns {{ success: boolean, latlngs?: Array, message?: string }}
+     */
+    function removeLatLngAtPath(latlngs, path, geometryType) {
+        if (!Array.isArray(path) || path.length === 0) {
+            return { success: false, message: 'Invalid vertex selection.' };
+        }
+
+        const clone = cloneLatLngStructure(latlngs);
+        let parent = clone;
+        for (let i = 0; i < path.length - 1; i++) {
+            parent = parent[path[i]];
+            if (!Array.isArray(parent)) {
+                return { success: false, message: 'Vertex path mismatch.' };
+            }
+        }
+
+        const removeIndex = path[path.length - 1];
+        if (!Array.isArray(parent) || removeIndex < 0 || removeIndex >= parent.length) {
+            return { success: false, message: 'Vertex index out of range.' };
+        }
+
+        parent.splice(removeIndex, 1);
+
+        if (geometryType && geometryType.toLowerCase().includes('polygon')) {
+            const rings = extractPolygonRings(clone);
+            if (!rings.length) {
+                return { success: false, message: 'Unable to adjust polygon vertices.' };
+            }
+            for (const ring of rings) {
+                normalizePolygonRing(ring);
+                const distinct = countDistinctVertices(ring);
+                if (distinct < 3) {
+                    return { success: false, message: 'Polygons must keep at least three unique vertices.' };
+                }
+            }
+        } else if (geometryType && geometryType.toLowerCase().includes('line')) {
+            const segments = extractLineSegments(clone);
+            if (!segments.length) {
+                return { success: false, message: 'Unable to adjust line vertices.' };
+            }
+            for (const segment of segments) {
+                if (segment.length < 2) {
+                    return { success: false, message: 'Lines must keep at least two points.' };
+                }
+            }
+        }
+
+        return { success: true, latlngs: clone };
+    }
+
+    /**
+     * Deep clones a latlng structure without duplicating LatLng instances unnecessarily.
+     * @param {Array} latlngs
+     * @returns {Array}
+     */
+    function cloneLatLngStructure(latlngs) {
+        if (!Array.isArray(latlngs)) {
+            return latlngs;
+        }
+        return latlngs.map(item => {
+            if (Array.isArray(item)) {
+                return cloneLatLngStructure(item);
+            }
+            if (item && typeof item.lat === 'number' && typeof item.lng === 'number') {
+                return item.clone ? item.clone() : L.latLng(item.lat, item.lng);
+            }
+            return item;
+        });
+    }
+
+    function latLngsEqual(a, b, epsilon = 1e-6) {
+        if (!a || !b) {
+            return false;
+        }
+        return Math.abs(a.lat - b.lat) <= epsilon && Math.abs(a.lng - b.lng) <= epsilon;
+    }
+
+    function extractPolygonRings(latlngs) {
+        const rings = [];
+        const stack = [latlngs];
+        while (stack.length) {
+            const current = stack.pop();
+            if (!Array.isArray(current) || !current.length) {
+                continue;
+            }
+            if (current[0] && typeof current[0].lat === 'number') {
+                rings.push(current);
+            } else {
+                for (const entry of current) {
+                    stack.push(entry);
+                }
+            }
+        }
+        return rings;
+    }
+
+    function extractLineSegments(latlngs) {
+        const segments = [];
+        const stack = [latlngs];
+        while (stack.length) {
+            const current = stack.pop();
+            if (!Array.isArray(current) || !current.length) {
+                continue;
+            }
+            if (current[0] && typeof current[0].lat === 'number') {
+                segments.push(current);
+            } else {
+                for (const entry of current) {
+                    stack.push(entry);
+                }
+            }
+        }
+        return segments;
+    }
+
+    function normalizePolygonRing(ring) {
+        if (!Array.isArray(ring) || !ring.length) {
+            return;
+        }
+        while (ring.length > 1 && latLngsEqual(ring[ring.length - 1], ring[0])) {
+            ring.pop();
+        }
+        if (ring.length === 0) {
+            return;
+        }
+        const first = ring[0];
+        const closing = first.clone ? first.clone() : L.latLng(first.lat, first.lng);
+        ring.push(closing);
+    }
+
+    function countDistinctVertices(ring) {
+        if (!Array.isArray(ring)) {
+            return 0;
+        }
+        const seen = [];
+        for (let i = 0; i < ring.length; i++) {
+            const point = ring[i];
+            if (i === ring.length - 1 && latLngsEqual(point, ring[0])) {
+                continue;
+            }
+            if (!seen.some(existing => latLngsEqual(existing, point))) {
+                seen.push(point);
+            }
+        }
+        return seen.length;
     }
 
     /**

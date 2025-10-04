@@ -567,20 +567,6 @@
                 <h4>${t('Rota Ayakları', 'Route Legs')}</h4>
                 <ul>${legsHtml}</ul>
             </div>
-            <div class="travel-times">
-                <h4>${t('Tahmini Seyahat Süreleri', 'Estimated Travel Times')}</h4>
-                <div class="travel-time-item">
-                    <strong>${t('Yürüyüş', 'Walk')}:</strong> ${(totalKm / bridge.config.profiles.walk.speed).toFixed(1)} ${t('gün', 'days')}
-                </div>
-                <div class="travel-time-item">
-                    <strong>${t('Vagon', 'Wagon')}:</strong> ${(totalKm / bridge.config.profiles.wagon.speed).toFixed(1)} ${t('gün', 'days')}
-                    ${terrainKm > 0 ? `<small>${t('(arazi dışı bölümler için +%25)', '(+25% for off-road sections)')}</small>` : ''}
-                </div>
-                <div class="travel-time-item">
-                    <strong>${t('At', 'Horse')}:</strong> ${(totalKm / bridge.config.profiles.horse.speed).toFixed(1)} ${t('gün', 'days')}
-                    ${terrainKm > 0 ? `<small>${t('(arazi dışı bölümler için +%15)', '(+15% for off-road sections)')}</small>` : ''}
-                </div>
-            </div>
             
             <div class="route-share">
                 <button id="copy-route-link" class="wiki-link">${t('Rota Bağlantısını Kopyala', 'Copy Route Link')}</button>

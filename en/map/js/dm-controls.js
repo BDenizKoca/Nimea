@@ -39,7 +39,9 @@
                 'dm.optimizeTerrain': 'Optimize',
                 'dm.optimizeTerrainTitle': 'Merge and simplify terrain features',
                 'dm.import': 'Import',
-                'dm.importTitle': 'Bulk import markers from CSV'
+                'dm.importTitle': 'Bulk import markers from CSV',
+                'dm.deleteNode': 'Delete Node',
+                'dm.deleteNodeTitle': 'Remove the selected vertex from the active shape'
             };
             return strings[key] || key;
         }
@@ -51,6 +53,7 @@
             this.addPublishControls();
             this.addTerrainModeControls();
             this.addTerrainMergeButton();
+            this.addDeleteNodeButton();
             this.addBulkImportButton();
             this.addAuthenticationControls();
         }
@@ -172,6 +175,34 @@
             this.enableTerrainSelection();
         }
         
+
+        /**
+         * Adds a button to delete the last selected vertex while editing.
+         */
+        addDeleteNodeButton() {
+            const self = this;
+            const DeleteNodeControl = L.Control.extend({
+                options: { position: 'topleft' },
+                onAdd: function () {
+                    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    const button = L.DomUtil.create('a', 'leaflet-control-button dm-delete-node-btn', container);
+                    button.innerHTML = self.t('dm.deleteNode');
+                    button.title = self.t('dm.deleteNodeTitle');
+                    button.href = '#';
+                    button.onclick = (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        L.DomEvent.preventDefault(e);
+                        if (self.bridge.dmModule && self.bridge.dmModule.deleteSelectedVertex) {
+                            self.bridge.dmModule.deleteSelectedVertex();
+                        }
+                    };
+                    return container;
+                }
+            });
+
+            this.bridge.map.addControl(new DeleteNodeControl());
+        }
+
         /**
          * Enable clicking on terrain polygons to select them for merging
          */
