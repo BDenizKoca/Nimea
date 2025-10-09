@@ -16,11 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const config = {
         kmPerPixel: 100 / 115, // 0.8695652174 (115 pixels = 100 km)
-        profiles: {
-            walk: { speed: 30, cost: 1.0 },
-            wagon: { speed: 50, cost: 0.8 },
-            horse: { speed: 60, cost: 0.7 },
+        terrainCosts: {
+            road: 0.7,
+            normal: 1.0,
+            forest: 1.2,
+            medium: 1.5,
+            difficult: 2.0,
+            sea: 0.25,
+            unpassable: 50.0,
+            blocked: 50.0
         },
+        waterTerrainKinds: ['sea', 'water', 'unpassable'],
+        profiles: {
+            walking:   { label: 'Walking',    landSpeed: 30, seaSpeed: 120 },
+            wagon:     { label: 'Wagon',      landSpeed: 50, seaSpeed: 120 },
+            horse:     { label: 'Horse',      landSpeed: 60, seaSpeed: 120 },
+            sea:       { label: 'Sea Voyage', landSpeed: 30, seaSpeed: 120 }
+        }
     };
 
     const state = {
@@ -32,12 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         route: [],
         routeLegs: [],
         routePolylines: [],
-    overlays: {},
+        overlays: {},
         markersLayer: null,
         showMarkers: true,
         isLiveCMS: false, // Will be set to true when authenticated for live saving
         routePolyline: null, // active rendered route
         dirty: { markers: false, terrain: false }, // track unsaved edits in DM session
+        travelMode: 'walking',
+        enableSeaTravel: false,
+        travelProfile: 'walking'
     };
 
     // --- Global Bridge ---

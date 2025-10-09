@@ -27,19 +27,17 @@
         pathfinding = window.__nimea_pathfinding;
         visualizer = window.__nimea_visualizer;
         
-        // Initialize travel mode (default to horse)
+        // Initialize travel mode (default to walking)
         if (!bridge.state.travelMode) {
-            bridge.state.travelMode = 'horse';
+            bridge.state.travelMode = 'walking';
         }
         
         // Set up travel mode selector listener (use delegation since it's dynamically rendered)
         document.addEventListener('change', (e) => {
             if (e.target.id === 'travel-mode-select') {
                 bridge.state.travelMode = e.target.value;
+                bridge.state.travelProfile = e.target.value;
                 console.log(`Travel mode changed to: ${e.target.value}`);
-                // Invalidate graph when travel mode changes (affects sea vs land cost comparison)
-                invalidateGraph();
-                // Recompute route with new settings
                 if (bridge.state.route.length >= 2) {
                     recomputeRoute();
                 }
@@ -49,7 +47,8 @@
         // Set up sea travel checkbox listener (also use delegation)
         document.addEventListener('change', (e) => {
             if (e.target.id === 'sea-travel-checkbox') {
-                console.log(`Sea travel ${e.target.checked ? 'enabled' : 'disabled'}`);
+                bridge.state.enableSeaTravel = !!e.target.checked;
+                console.log(`Sea travel ${bridge.state.enableSeaTravel ? 'enabled' : 'disabled'}`);
                 // Invalidate graph when sea travel option changes
                 invalidateGraph();
                 // Recompute route with new settings
@@ -245,8 +244,7 @@
         
         // Build graph if it doesn't exist
         if (!routingGraph) {
-            const seaTravelCheckbox = document.getElementById('sea-travel-checkbox');
-            const seaTravelEnabled = seaTravelCheckbox ? seaTravelCheckbox.checked : false;
+            const seaTravelEnabled = !!bridge.state.enableSeaTravel;
             routingGraph = graphBuilder.buildRoutingGraph(seaTravelEnabled);
         }
 
@@ -367,22 +365,113 @@
         
         console.log(`Found path with ${graphPath.length} nodes`);
         
-        // Convert path to segments and render
-    const pathSegments = visualizer.analyzePathSegments(graphPath, routingGraph, start, end);
-        const actualDistanceKm = pathfinding.computeActualDistance(graphPath, routingGraph.edgeMap, bridge.config.kmPerPixel);
-        const weightedCostKm = pathfinding.computeGraphPathCost(graphPath, routingGraph.edgeMap, bridge.config.kmPerPixel);
+        // Convert path to segments and gather traversal statistics
+        const pathSegments = visualizer.analyzePathSegments(graphPath, routingGraph, start, end);
+        const profile = getActiveProfile();
+        const traversalStats = computeTraversalStats(graphPath, routingGraph, bridge.config.kmPerPixel, profile);
         
-        // Add leg to route
+        // Add leg to route with detailed metrics
         bridge.state.routeLegs.push({ 
             from: start, 
             to: end, 
-            distanceKm: actualDistanceKm,        // ACTUAL physical distance for display
-            weightedCostKm: weightedCostKm,      // Weighted cost (internal use only)
+            distanceKm: traversalStats.distanceKm,
+            weightedCostKm: traversalStats.weightedCostKm,
+            travelDays: traversalStats.travelDays,
+            travelHours: traversalStats.travelDays * 24,
             hybrid: true,
+            usesSea: traversalStats.distanceBreakdown.seaKm > 0,
+            distanceBreakdown: traversalStats.distanceBreakdown,
             segments: pathSegments
         });
         
         if (typeof onComplete === 'function') onComplete();
+    }
+
+    function getActiveProfile() {
+        const profiles = (bridge.config && bridge.config.profiles) || {};
+        const key = bridge.state.travelMode || 'walking';
+        const fallback = profiles.walking || profiles.walk || { label: 'Walking', landSpeed: 30, seaSpeed: 120 };
+        const profile = profiles[key] || fallback;
+        return {
+            label: profile.label || key,
+            landSpeed: profile.landSpeed || profile.speed || 30,
+            seaSpeed: profile.seaSpeed || 120
+        };
+    }
+
+    function categorizeEdge(edge) {
+        const type = (edge && edge.type) ? edge.type : '';
+        if (!type) return 'terrain';
+        if (type.startsWith('sea')) {
+            return type === 'sea_port_link' ? 'port' : 'sea';
+        }
+        if (type.startsWith('road')) {
+            return 'road';
+        }
+        return 'terrain';
+    }
+
+    function computeTraversalStats(graphPath, routingGraph, kmPerPixel, profile) {
+        const kmPerPx = kmPerPixel || (100 / 115);
+        const stats = {
+            distanceKm: 0,
+            travelDays: 0,
+            weightedCostKm: 0,
+            distanceBreakdown: {
+                roadKm: 0,
+                terrainKm: 0,
+                seaKm: 0,
+                portKm: 0
+            }
+        };
+
+        if (!Array.isArray(graphPath) || graphPath.length < 2) {
+            return stats;
+        }
+
+        const landSpeed = profile.landSpeed > 0 ? profile.landSpeed : 30;
+        const seaSpeed = profile.seaSpeed > 0 ? profile.seaSpeed : 120;
+
+        for (let i = 1; i < graphPath.length; i++) {
+            const fromId = graphPath[i - 1];
+            const toId = graphPath[i];
+            const edgeKey = `${fromId}|${toId}`;
+            const edge = routingGraph.edgeMap.get(edgeKey);
+            if (!edge) continue;
+
+            const segmentDistanceKm = (edge.distance || 0) * kmPerPx;
+            if (!isFinite(segmentDistanceKm) || segmentDistanceKm <= 0) continue;
+
+            stats.distanceKm += segmentDistanceKm;
+
+            const category = categorizeEdge(edge);
+            switch (category) {
+                case 'road':
+                    stats.distanceBreakdown.roadKm += segmentDistanceKm;
+                    break;
+                case 'sea':
+                    stats.distanceBreakdown.seaKm += segmentDistanceKm;
+                    break;
+                case 'port':
+                    stats.distanceBreakdown.portKm += segmentDistanceKm;
+                    break;
+                default:
+                    stats.distanceBreakdown.terrainKm += segmentDistanceKm;
+                    break;
+            }
+
+            let edgeTimeDays = 0;
+            if (category === 'sea') {
+                edgeTimeDays = seaSpeed > 0 ? (segmentDistanceKm / seaSpeed) : 0;
+            } else {
+                const multiplier = (edge.cost !== undefined && edge.cost > 0) ? edge.cost : 1;
+                edgeTimeDays = landSpeed > 0 ? (segmentDistanceKm / landSpeed) * multiplier : 0;
+            }
+            stats.travelDays += edgeTimeDays;
+        }
+
+        stats.weightedCostKm = pathfinding.computeGraphPathCost(graphPath, routingGraph.edgeMap, kmPerPx);
+        return stats;
     }
 
     // Expose public functions

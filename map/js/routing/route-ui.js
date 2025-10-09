@@ -15,7 +15,7 @@
         domCache = domCacheObj;
         routeDragDrop = routeDragDropObj;
         
-    (window.__nimea_log && __nimea_log.log)("Route UI module initialized");
+        (window.__nimea_log && __nimea_log.log)("Route UI module initialized");
     }
 
     /**
@@ -24,7 +24,7 @@
      */
     function setupRouteEventDelegation() {
         const stopsDiv = domCache.get('route-stops');
-    (window.__nimea_log && __nimea_log.log)("Setting up route event delegation - stopsDiv:", stopsDiv);
+        (window.__nimea_log && __nimea_log.log)("Setting up route event delegation - stopsDiv:", stopsDiv);
         
         if (!stopsDiv) {
             (window.__nimea_log && __nimea_log.error)("Route stops container not found - trying direct getElementById");
@@ -38,7 +38,7 @@
         }
         
         // Use permanent event delegation - this listener will handle all future button clicks
-    (window.__nimea_log && __nimea_log.log)("Adding click event listener to stopsDiv");
+        (window.__nimea_log && __nimea_log.log)("Adding click event listener to stopsDiv");
         stopsDiv.addEventListener('click', handleRouteStopClick);
         
         // Set up delegation for the clear button too (it's outside the stops div)
@@ -47,7 +47,7 @@
             routeSidebar.addEventListener('click', handleClearButtonClick);
         }
         
-    (window.__nimea_log && __nimea_log.log)("Route event delegation set up permanently");
+        (window.__nimea_log && __nimea_log.log)("Route event delegation set up permanently");
     }
 
     /**
@@ -69,7 +69,7 @@
      */
     function handleRouteStopClick(e) {
         const target = e.target;
-    (window.__nimea_log && __nimea_log.log)("Route stop click detected:", target, "classes:", target.classList.toString(), "dataset:", target.dataset);
+        (window.__nimea_log && __nimea_log.log)("Route stop click detected:", target, "classes:", target.classList.toString(), "dataset:", target.dataset);
         
         // Handle remove button clicks
         if (target.classList.contains('mini-btn') && target.dataset.ridx !== undefined) {
@@ -86,7 +86,7 @@
             return;
         }
         
-    (window.__nimea_log && __nimea_log.log)("Click not handled - target doesn't match remove button criteria");
+        (window.__nimea_log && __nimea_log.log)("Click not handled - target doesn't match remove button criteria");
     }
 
     /**
@@ -100,54 +100,64 @@
         }
 
         try {
-            // Add debugging to understand what's happening
             (window.__nimea_log && __nimea_log.log)("updateRouteDisplay called - bridge.state:", bridge.state);
-            (window.__nimea_log && __nimea_log.log)("bridge.state.route:", bridge.state.route, "type:", typeof bridge.state.route, "isArray:", Array.isArray(bridge.state.route));
-            
-            if (!bridge.state.route || !Array.isArray(bridge.state.route)) {
+
+            if (!Array.isArray(bridge.state.route)) {
                 (window.__nimea_log && __nimea_log.error)("bridge.state.route is not a valid array:", bridge.state.route);
                 stopsDiv.innerHTML = '<div class="error-message">Route data is invalid. Please refresh the page.</div>';
                 return;
             }
-            
-            stopsDiv.innerHTML = bridge.state.route.map((stop, idx) => {
+
+            const isEnglish = window.location.pathname.startsWith('/en');
+            const kmLabel = isEnglish ? 'km/day' : 'km/gun';
+            const travelMode = bridge.state.travelMode || 'walking';
+            const profiles = (bridge.config && bridge.config.profiles) || {};
+
+            const profileEntries = Object.entries(profiles);
+            const travelOptionsHtml = profileEntries.length ? profileEntries.map(([key, profile]) => {
+                const baseLabel = profile.label || key.charAt(0).toUpperCase() + key.slice(1);
+                const speedValue = key === 'sea'
+                    ? (profile.seaSpeed || profile.landSpeed || profile.speed || 0)
+                    : (profile.landSpeed || profile.speed || 0);
+                const selectedAttr = key === travelMode ? 'selected' : '';
+                return `<option value="${key}" ${selectedAttr}>${baseLabel} (${speedValue} ${kmLabel})</option>`;
+            }).join('') : `<option value="walking" ${travelMode === 'walking' ? 'selected' : ''}>${isEnglish ? 'Walking' : 'Yuruyerek'} (30 ${kmLabel})</option>`;
+
+            const seaTravelLabel = isEnglish ? 'Sea Travel (120 km/day)' : 'Deniz Yolu (120 km/gun)';
+            const travelModeLabel = isEnglish ? 'Travel Mode:' : 'Seyahat Yontemi:';
+            const seaCheckedAttr = bridge.state.enableSeaTravel ? 'checked' : '';
+
+            const stopsHtml = bridge.state.route.map((stop, idx) => {
                 (window.__nimea_log && __nimea_log.log)(`Rendering stop ${idx}:`, stop);
-                const stopType = stop.isWaypoint ? 'waypoint' : 'marker';
                 return `<div class="route-stop-row" draggable="true" data-route-index="${idx}">
-                            <span class="drag-handle">⋮⋮</span>
-                            <span class="stop-info">${idx+1}. ${stop.name}</span>
-                            <button class="mini-btn" data-ridx="${idx}" title="Remove stop">✖</button>
+                            <span class="drag-handle">??</span>
+                            <span class="stop-info">${idx + 1}. ${stop.name}</span>
+                            <button class="mini-btn" data-ridx="${idx}" title="Remove stop">?</button>
                         </div>`;
-    }).join('') + (bridge.state.route.length ? `<div class="route-actions">
-        <button id="clear-route-btn" class="wiki-link clear-route-btn">${window.nimeaI18n ? window.nimeaI18n.t('clearRoute') : (window.location.pathname.startsWith('/en') ? 'Clear Route' : 'Rotayı Temizle')}</button>
-        
-        <div class="travel-options">
-            <label class="travel-mode-label">${window.location.pathname.startsWith('/en') ? 'Travel Mode:' : 'Seyahat Yöntemi:'}</label>
-            <select id="travel-mode-select" class="travel-mode-select">
-                <option value="walking">${window.location.pathname.startsWith('/en') ? 'Walking (30 km/day)' : 'Yürüyerek (30 km/gün)'}</option>
-                <option value="wagon">${window.location.pathname.startsWith('/en') ? 'Wagon (50 km/day)' : 'Araba (50 km/gün)'}</option>
-                <option value="horse" selected>${window.location.pathname.startsWith('/en') ? 'Horse (60 km/day)' : 'At (60 km/gün)'}</option>
-            </select>
-            
-            <label class="sea-travel-option">
-                <input type="checkbox" id="sea-travel-checkbox">
-                <span>${window.location.pathname.startsWith('/en') ? 'Sea Travel (120 km/day)' : 'Deniz Yolu (120 km/gün)'}</span>
-            </label>
-        </div>
-            </div>` : '');
-        
-            // Event delegation handles all button clicks automatically
-            // No need to manually attach event listeners here anymore
-            
-            // Setup drag and drop functionality (ALWAYS re-initialize after DOM update)
+            }).join('');
+
+            const controlsHtml = bridge.state.route.length ? `<div class="route-actions">
+                <button id="clear-route-btn" class="wiki-link clear-route-btn">${window.nimeaI18n ? window.nimeaI18n.t('clearRoute') : (isEnglish ? 'Clear Route' : 'Rotayi Temizle')}</button>
+                <div class="travel-options">
+                    <label class="travel-mode-label">${travelModeLabel}</label>
+                    <select id="travel-mode-select" class="travel-mode-select">
+                        ${travelOptionsHtml}
+                    </select>
+                    <label class="sea-travel-option">
+                        <input type="checkbox" id="sea-travel-checkbox" ${seaCheckedAttr}>
+                        <span>${seaTravelLabel}</span>
+                    </label>
+                </div>
+            </div>` : '';
+
+            stopsDiv.innerHTML = stopsHtml + controlsHtml;
+
             if (bridge.state.route.length > 1) {
-                // Clear the flag since we're regenerating HTML and need fresh event listeners
                 stopsDiv._dragInitialized = false;
                 routeDragDrop.setupDragAndDrop(stopsDiv, reorderCallback);
             }
         } catch (error) {
             (window.__nimea_log && __nimea_log.error)('Error updating route display:', error);
-            // Fallback: ensure the div is cleared in case of partial failure
             if (stopsDiv) {
                 stopsDiv.innerHTML = '<div class="error-message">Error loading route. Please refresh the page.</div>';
             }

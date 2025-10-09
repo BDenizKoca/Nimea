@@ -48,18 +48,19 @@
 
     // Configuration constants
     // Time multipliers: How much time it takes to cross terrain (lower = faster)
-    const TERRAIN_COSTS = {
-        road: 0.7,       // Roads are 30% faster than normal terrain
-        normal: 1.0,     // Baseline travel time (open plains, etc.)
-        medium: 1.5,     // 50% more time (hills, light forest)
-        difficult: 2.0,  // 2x more time (mountains, dense forest)
-        unpassable: 50.0, // Effectively blocked on land
-        blocked: 50.0,   // Water when sea travel disabled
-        sea: 0.25        // Sea travel: 120 km/day vs 30 km/day walking = 4x faster
+    let TERRAIN_COSTS = {
+        road: 0.7,
+        normal: 1.0,
+        forest: 1.2,
+        medium: 1.5,
+        difficult: 2.0,
+        sea: 0.25,
+        unpassable: 50.0,
+        blocked: 50.0
     };
 
-    const TERRAIN_GRID_SIZE = 25;  // Denser grid for better connectivity
-    const ROAD_CONNECTION_DISTANCE = 300; // Increased range for road connections
+    let TERRAIN_GRID_SIZE = 25;  // Denser grid for better connectivity
+    let ROAD_CONNECTION_DISTANCE = 300; // Increased range for road connections
 
     /**
      * Initialize routing system with all dependencies
@@ -69,6 +70,20 @@
         if (!bridge) {
             console.error("Routing module requires the global bridge.");
             return;
+        }
+
+        // Hydrate config-driven constants
+        if (bridge.config) {
+            if (bridge.config.terrainCosts) {
+                TERRAIN_COSTS = Object.assign({}, TERRAIN_COSTS, bridge.config.terrainCosts);
+            }
+            const routingCfg = bridge.config.routingConfig || {};
+            if (routingCfg.terrainGridSize) {
+                TERRAIN_GRID_SIZE = routingCfg.terrainGridSize;
+            }
+            if (routingCfg.roadConnectionDistance) {
+                ROAD_CONNECTION_DISTANCE = routingCfg.roadConnectionDistance;
+            }
         }
 
         // Initialize existing sub-modules
@@ -85,7 +100,12 @@
 
         // Initialize existing modules with dependencies
         graphBuilder.initGraphBuilder(bridge, TERRAIN_COSTS, TERRAIN_GRID_SIZE, ROAD_CONNECTION_DISTANCE, terrainUtils);
-        terrainUtils.initTerrainUtils(bridge, TERRAIN_COSTS);
+        terrainUtils.initTerrainUtils(bridge, TERRAIN_COSTS, {
+            waterKinds: bridge.config ? bridge.config.waterTerrainKinds : undefined
+        });
+        if (pathfinding.initPathfinding) {
+            pathfinding.initPathfinding(bridge);
+        }
         pathNaturalizer.initPathNaturalizer(bridge, terrainUtils);
         visualizer.initVisualizer(bridge);
 

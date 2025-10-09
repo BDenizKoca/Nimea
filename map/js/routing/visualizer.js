@@ -48,6 +48,7 @@
             }
             
             const point = [node.y, node.x]; // Leaflet uses [lat, lng]
+            const isMarkerNode = node.type === 'marker';
             console.log(`Node ${i}: ${nodeId} (${node.type}) at [${node.y}, ${node.x}]`);
             
             // Determine segment type based on next edge
@@ -61,6 +62,8 @@
                     segmentType = 'road';
                 } else if (edge && edge.type.includes('bridge')) {
                     segmentType = 'bridge';
+                } else if (edge && edge.type.indexOf('sea') === 0) {
+                    segmentType = 'sea';
                 }
             }
             
@@ -71,10 +74,13 @@
                 }
                 currentSegment = {
                     type: segmentType,
-                    points: [point]
+                    points: [point],
+                    markerFlags: [isMarkerNode]
                 };
             } else {
                 currentSegment.points.push(point);
+                if (!currentSegment.markerFlags) currentSegment.markerFlags = [];
+                currentSegment.markerFlags.push(isMarkerNode);
             }
         }
         
@@ -90,10 +96,14 @@
             if (firstNode && firstNode.type === 'marker') {
                 const firstSegment = segments[0];
                 firstSegment.points[0] = [firstNode.y, firstNode.x];
+                if (!firstSegment.markerFlags) firstSegment.markerFlags = [];
+                firstSegment.markerFlags[0] = true;
                 console.log(`Fixed path start to marker position: [${firstNode.y}, ${firstNode.x}]`);
             } else if (startMarker) {
                 const firstSegment = segments[0];
                 firstSegment.points.unshift([startMarker.y, startMarker.x]);
+                if (!firstSegment.markerFlags) firstSegment.markerFlags = [];
+                firstSegment.markerFlags.unshift(true);
                 console.log(`Extended path from provided start marker: [${startMarker.y}, ${startMarker.x}]`);
             }
         }
@@ -117,6 +127,8 @@
                     
                     // Always force the endpoint to match the marker position exactly
                     lastSegment.points[lastSegment.points.length - 1] = [lastNode.y, lastNode.x];
+                    if (!lastSegment.markerFlags) lastSegment.markerFlags = [];
+                    lastSegment.markerFlags[lastSegment.markerFlags.length - 1] = true;
                     console.log(`Fixed path endpoint to marker position: [${lastNode.y}, ${lastNode.x}]`);
                 }
             } else {
@@ -126,6 +138,8 @@
                 if (endMarker && segments.length > 0) {
                     const lastSegment = segments[segments.length - 1];
                     lastSegment.points.push([endMarker.y, endMarker.x]);
+                    if (!lastSegment.markerFlags) lastSegment.markerFlags = [];
+                    lastSegment.markerFlags.push(true);
                     console.log(`Extended path to provided destination marker: [${endMarker.y}, ${endMarker.x}]`);
                 }
             }
@@ -200,46 +214,72 @@
         
         // Collect all points from all segments to create a continuous path
         const allPoints = [];
-        
+        const markerFlags = [];
+
         segments.forEach((segment, index) => {
             if (segment.points && segment.points.length > 0) {
-                if (index === 0) {
-                    // First segment: add all points
-                    allPoints.push(...segment.points);
-                } else {
-                    // Subsequent segments: skip first point to avoid duplication
-                    allPoints.push(...segment.points.slice(1));
-                }
+                const pointsToAdd = index === 0 ? segment.points : segment.points.slice(1);
+                const flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
+                const flagsToAdd = index === 0 ? flagsSource : flagsSource.slice(1);
+                allPoints.push(...pointsToAdd);
+                markerFlags.push(...flagsToAdd);
             }
         });
-        
+
+        if (markerFlags.length !== allPoints.length) {
+            while (markerFlags.length < allPoints.length) markerFlags.push(false);
+        }
+
         if (allPoints.length < 2) return;
-        
+
         // Convert Leaflet [lat, lng] format to [x, y] for naturalization
         const coordinatesForNaturalization = allPoints.map(point => [point[1], point[0]]); // swap to [x, y]
-        
+
         let finalPoints = allPoints; // Default to original points
-        
+
         // Apply path naturalization if available
         if (pathNaturalizer) {
             try {
-                // Naturalize the path using terrain-aware nudging and smoothing
-                const naturalizedCoords = pathNaturalizer.naturalizePath(
-                    coordinatesForNaturalization, 
-                    null, // terrainGrid will use built-in terrain utilities
-                    {
-                        nudgeStep: 8,           // Resample every 8 map units for smooth curves
-                        nudgeOffset: 4,         // Check terrain 4 units away
-                        nudgeStrength: 1.0,     // Moderate nudging strength
-                        smoothIterations: 2,    // 2 iterations of smoothing
-                        smoothRatio: 0.25,      // Standard corner cutting
-                        terrainSensitivity: 1.0 // Full terrain awareness
+                const naturalizeOptions = {
+                    nudgeStep: 8,
+                    nudgeOffset: 4,
+                    nudgeStrength: 1.0,
+                    smoothIterations: 2,
+                    smoothRatio: 0.25,
+                    terrainSensitivity: 1.0
+                };
+
+                const anchorSet = new Set([0, coordinatesForNaturalization.length - 1]);
+                markerFlags.forEach((flag, idx) => {
+                    if (flag) anchorSet.add(idx);
+                });
+                const anchors = Array.from(anchorSet).sort((a, b) => a - b);
+
+                let combined = [];
+                for (let i = 0; i < anchors.length - 1; i++) {
+                    const startIdx = anchors[i];
+                    const endIdx = anchors[i + 1];
+                    if (endIdx <= startIdx) continue;
+                    const slice = coordinatesForNaturalization.slice(startIdx, endIdx + 1);
+                    let processedSlice = slice;
+                    if (slice.length > 1) {
+                        processedSlice = pathNaturalizer.naturalizePath(
+                            slice,
+                            null,
+                            naturalizeOptions
+                        );
                     }
-                );
-                
+                    if (combined.length) {
+                        processedSlice = processedSlice.slice(1);
+                    }
+                    combined.push(...processedSlice);
+                }
+
+                const naturalizedCoords = combined.length ? combined : coordinatesForNaturalization;
+
                 // Convert back to Leaflet format [lat, lng]
                 finalPoints = pathNaturalizer.coordinatesToLeafletFormat(naturalizedCoords);
-                
+
                 console.log(`Naturalized path: ${allPoints.length} → ${finalPoints.length} points`);
             } catch (error) {
                 console.warn("Path naturalization failed, using original path:", error);
@@ -247,18 +287,6 @@
             }
         }
 
-        // HARD SNAP: Ensure the unified route starts/ends exactly at the current route's markers
-        if (bridge && bridge.state && Array.isArray(bridge.state.route) && bridge.state.route.length >= 2) {
-            const startStop = bridge.state.route[0];
-            const endStop = bridge.state.route[bridge.state.route.length - 1];
-            if (startStop && endStop) {
-                // Replace first and last points with exact marker positions [lat, lng]
-                finalPoints[0] = [startStop.y, startStop.x];
-                finalPoints[finalPoints.length - 1] = [endStop.y, endStop.x];
-                console.log('Snapped unified route endpoints to markers:', finalPoints[0], finalPoints[finalPoints.length - 1]);
-            }
-        }
-        
         // Create a unified blue route line with natural curves
         const unifiedStyle = {
             color: '#1e3a8a', // Slightly deeper blue
@@ -292,39 +320,75 @@
 
         // Gather all segment points in Leaflet [lat,lng]
         const points = [];
+        const markerFlags = [];
         routeLegs.forEach((leg, li) => {
             if (!leg.segments) return;
             leg.segments.forEach((segment, si) => {
                 if (!segment.points || segment.points.length === 0) return;
-                if (points.length === 0) {
-                    points.push(...segment.points);
-                } else {
-                    // Avoid duplicate junction point
-                    points.push(...segment.points.slice(1));
-                }
+                const pointsToAdd = points.length === 0 ? segment.points : segment.points.slice(1);
+                const flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
+                const flagsToAdd = points.length === 0 ? flagsSource : flagsSource.slice(1);
+                points.push(...pointsToAdd);
+                markerFlags.push(...flagsToAdd);
             });
         });
+        if (markerFlags.length !== points.length) {
+            while (markerFlags.length < points.length) markerFlags.push(false);
+        }
+        if (points.length < 2) return;
         if (points.length < 2) return;
 
         // Convert to [x,y] for optional naturalization (reuse existing naturalize pipeline)
         let processed = points.map(p => [p[1], p[0]]);
+        const anchorSetFull = new Set([0, processed.length - 1]);
+        markerFlags.forEach((flag, idx) => {
+            if (flag) anchorSetFull.add(idx);
+        });
+        const anchors = Array.from(anchorSetFull).sort((a, b) => a - b);
+        let combinedAnchors = [];
+
         if (pathNaturalizer) {
             try {
-                processed = pathNaturalizer.naturalizePath(processed, null, {
-                    nudgeStep: 10,
-                    nudgeOffset: 5,
-                    nudgeStrength: 0.8,
-                    smoothIterations: 2,
-                    smoothRatio: 0.22,
-                    terrainSensitivity: 0.8
-                });
+                let combined = [];
+                for (let i = 0; i < anchors.length - 1; i++) {
+                    const startIdx = anchors[i];
+                    const endIdx = anchors[i + 1];
+                    if (endIdx <= startIdx) continue;
+                    const slice = processed.slice(startIdx, endIdx + 1);
+                    let processedSlice = slice;
+                    if (slice.length > 1) {
+                        processedSlice = pathNaturalizer.naturalizePath(processedSlice, null, {
+                            nudgeStep: 10,
+                            nudgeOffset: 5,
+                            nudgeStrength: 0.8,
+                            smoothIterations: 2,
+                            smoothRatio: 0.22,
+                            terrainSensitivity: 0.8
+                        });
+                    }
+                    if (combined.length) {
+                        processedSlice = processedSlice.slice(1);
+                    } else {
+                        combinedAnchors.push(0);
+                    }
+                    const prevLength = combined.length;
+                    combined.push(...processedSlice);
+                    combinedAnchors.push(combined.length - 1);
+                }
+                if (combined.length) {
+                    processed = combined;
+                }
             } catch (e) {
                 console.warn('Naturalization in unified route failed, falling back to raw:', e);
             }
         }
 
-        // Apply gentle sine-wave waviness along the path for aesthetic (does not alter endpoints much)
-        const wavy = applyWaviness(processed, 6, 3); // wavelength px, amplitude px
+        if (!combinedAnchors.length) {
+            combinedAnchors = Array.from(anchorSetFull);
+        }
+        const lockedForWave = Array.from(new Set(combinedAnchors)).sort((a, b) => a - b);
+
+        const wavy = applyWaviness(processed, 6, 3, lockedForWave); // wavelength px, amplitude px
         const leafletPts = pathNaturalizer ? pathNaturalizer.coordinatesToLeafletFormat(wavy) : wavy.map(c => [c[1], c[0]]);
 
         // HARD SNAP: Ensure the full unified route starts/ends exactly at the current route's first/last markers
@@ -362,8 +426,9 @@
      * amplitudePx: maximum perpendicular displacement
      * wavelengthPx: distance over which wave completes one cycle
      */
-    function applyWaviness(points, wavelengthPx = 8, amplitudePx = 2) {
+    function applyWaviness(points, wavelengthPx = 8, amplitudePx = 2, lockedIndices = []) {
         if (!points || points.length < 3) return points;
+        const lockedSet = Array.isArray(lockedIndices) ? new Set(lockedIndices) : null;
         let total = 0;
         const out = [points[0]];
         for (let i = 1; i < points.length - 1; i++) {
@@ -374,6 +439,10 @@
             const dy = cur[1] - prev[1];
             const segLen = Math.sqrt(dx*dx + dy*dy) || 1;
             total += segLen;
+            if (lockedSet && lockedSet.has(i)) {
+                out.push([cur[0], cur[1]]);
+                continue;
+            }
             // Unit direction
             const ux = dx / segLen;
             const uy = dy / segLen;
@@ -391,9 +460,6 @@
         return out;
     }
 
-    /**
-     * Compute distance of a path segment in kilometers
-     */
     function computeSegmentDistance(points) {
         if (!points || points.length < 2) return 0;
         
@@ -413,231 +479,164 @@
      * Weighted costs (distance × terrain_cost) are used internally for pathfinding only.
      */
     function updateRouteSummaryFromLegs() {
-        const summaryDiv = document.getElementById('route-summary');
+        const summaryDiv = document.getElementById("route-summary");
         if (!summaryDiv) return;
-        if (!bridge.state.routeLegs.length) { 
-            updateRouteSummaryEmpty(); 
-            return; 
+        if (!bridge.state.routeLegs.length) {
+            updateRouteSummaryEmpty();
+            return;
         }
-        
-    const totalKm = bridge.state.routeLegs.reduce((a, l) => a + l.distanceKm, 0); // Actual distance, not weighted!
-        const hasUnreachable = bridge.state.routeLegs.some(l => l.unreachable);
-        
-        // Analyze Rota Bileşimi
-        let roadKm = 0;
-        let terrainKm = 0;
-        let bridgeKm = 0;
-        
-        bridge.state.routeLegs.forEach(Ayak => {
-            if (Ayak.segments) {
-                Ayak.segments.forEach(segment => {
-                    const segmentDistance = computeSegmentDistance(segment.points);
-                    switch (segment.type) {
-                        case 'road':
-                            roadKm += segmentDistance;
-                            break;
-                        case 'terrain':
-                            terrainKm += segmentDistance;
-                            break;
-                        case 'bridge':
-                            bridgeKm += segmentDistance;
-                            break;
-                        default:
-                            // Handle any unclassified segments
-                            console.warn(`Unclassified segment type: ${segment.type}, adding to terrain`);
-                            terrainKm += segmentDistance;
-                            break;
-                    }
-                });
-            } else {
-                // If Ayak has no segments, treat entire Ayak as terrain
-                console.warn(`Ayak ${Ayak.from.name} → ${Ayak.to.name} has no segments, treating as terrain`);
-                terrainKm += Ayak.distanceKm;
-            }
-        });
-        
-        // Check if segment distances match total distance
-        const segmentTotal = roadKm + terrainKm + bridgeKm;
-        const discrepancy = Math.abs(totalKm - segmentTotal);
-        
-        if (discrepancy > 0.1) { // If more than 100m difference
-            console.warn(`Distance discrepancy: Total ${totalKm.toFixed(2)}km vs Segments ${segmentTotal.toFixed(2)}km (diff: ${discrepancy.toFixed(2)}km)`);
-            // Adjust the largest component to match the total
-            const adjustment = totalKm - segmentTotal;
-            if (terrainKm >= roadKm && terrainKm >= bridgeKm) {
-                terrainKm += adjustment;
-            } else if (roadKm >= bridgeKm) {
-                roadKm += adjustment;
-            } else {
-                bridgeKm += adjustment;
-            }
-        }
-        
-        const legsHtml = bridge.state.routeLegs.map((l, i) => {
-            let legInfo = `${t('Ayak', 'Leg')} ${i + 1}: ${l.from.name} → ${l.to.name}: ${l.distanceKm.toFixed(2)} km`;
 
-            if (l.unreachable) {
-                legInfo += ` <span class="route-status blocked">${t('ENGELLENDİ!', 'BLOCKED!')}</span>`;
-                if (l.error) {
-                    legInfo += `<br><small class="route-error">${t('Hata', 'Error')}: ${l.error}</small>`;
+        const profiles = (bridge.config && bridge.config.profiles) || {};
+        const defaultProfile = profiles.walking || profiles.walk || { landSpeed: 30, seaSpeed: 120, label: "Walking" };
+        const activeProfileKey = bridge.state.travelProfile || bridge.state.travelMode || "walking";
+        const activeProfile = profiles[activeProfileKey] || defaultProfile;
+        bridge.state.travelProfile = activeProfileKey;
+
+        const totalKm = bridge.state.routeLegs.reduce((sum, leg) => sum + (leg.distanceKm || 0), 0);
+        const totalDays = bridge.state.routeLegs.reduce((sum, leg) => sum + (leg.travelDays || 0), 0);
+        const hasUnreachable = bridge.state.routeLegs.some(leg => leg.unreachable);
+
+        const breakdown = bridge.state.routeLegs.reduce((acc, leg) => {
+            const legBreakdown = leg.distanceBreakdown || {};
+            acc.road += legBreakdown.roadKm || 0;
+            acc.terrain += legBreakdown.terrainKm || 0;
+            acc.sea += legBreakdown.seaKm || 0;
+            acc.port += legBreakdown.portKm || 0;
+            return acc;
+        }, { road: 0, terrain: 0, sea: 0, port: 0 });
+
+        const effectiveTerrainKm = breakdown.terrain + breakdown.port;
+        const compositionTotal = breakdown.road + effectiveTerrainKm + breakdown.sea;
+        const percent = (value) => compositionTotal > 0 ? Math.round((value / compositionTotal) * 100) : 0;
+
+        const legsHtml = bridge.state.routeLegs.map((leg, idx) => {
+            let legInfo = `${t("Ayak", "Leg")} ${idx + 1}: ${leg.from.name} -> ${leg.to.name}: ${leg.distanceKm.toFixed(2)} km`;
+            if (leg.travelDays) {
+                legInfo += ` <span class="leg-time">(${formatDuration(leg.travelDays)})</span>`;
+            }
+            if (leg.unreachable) {
+                legInfo += ` <span class="route-status blocked">${t("ENGELLENDI!", "BLOCKED!")}</span>`;
+                if (leg.error) {
+                    legInfo += `<br><small class="route-error">${t("Hata", "Error")}: ${leg.error}</small>`;
                 }
-            } else if (l.hybrid) {
-                legInfo += ` <span class="route-status hybrid">${t('hibrit rota', 'hybrid route')}</span>`;
-            } else if (l.fallback) {
-                legInfo += ` <span class="route-status terrain">${t('doğrudan arazi', 'direct terrain')}</span>`;
+            } else if (leg.usesSea) {
+                legInfo += ` <span class="route-status hybrid">${t("deniz gecisi", "sea leg")}</span>`;
             }
-
             return `<li>${legInfo}</li>`;
         }).join('');
-        
-        // Generate warnings and info
-        let alertsHtml = '';
+
+        let alertsHtml = "";
         if (hasUnreachable) {
-            alertsHtml += `<div class="route-alert warning">⚠️ ${t('Bazı hedefler arazi engelleri nedeniyle ulaşılamaz!', 'Some destinations are unreachable due to terrain obstacles!')}</div>`;
-        } else if (terrainKm > roadKm) {
-            alertsHtml += `<div class="route-alert info">ℹ️ ${t('Rota ağırlıklı olarak arazi dışı yolları kullanır (daha yavaş seyahat)', 'The route is mostly off-road (slower travel)')}</div>`;
-        } else if (terrainKm > 0) {
-            alertsHtml += `<div class="route-alert info">ℹ️ ${t('Rota bazı arazi dışı bölümler içerir', 'The route includes some off-road sections')}</div>`;
+            alertsHtml += `<div class="route-alert warning">⚠️ ${t("Bazi hedefler arazi engelleri nedeniyle ulasilamaz!", "Some destinations are unreachable due to terrain obstacles!")}</div>`;
+        } else if (effectiveTerrainKm > breakdown.road && effectiveTerrainKm > 0) {
+            alertsHtml += `<div class="route-alert info">ℹ️ ${t("Rota agirlikli olarak arazi disi yollari kullanir (daha yavas seyahat)", "The route is mostly off-road (slower travel)")}</div>`;
+        } else if (breakdown.sea > 0) {
+            alertsHtml += `<div class="route-alert info">🌊 ${t("Rota deniz yolculugu iceriyor", "Route includes sea travel")}</div>`;
         }
-        
-        // Rota Bileşimi breakdown with proper percentage calculation
-        // Use the corrected segment totals for percentage calculation
-        const actualTotal = roadKm + terrainKm + bridgeKm;
-        let roadPercent = actualTotal > 0 ? Math.round((roadKm / actualTotal) * 100) : 0;
-        let terrainPercent = actualTotal > 0 ? Math.round((terrainKm / actualTotal) * 100) : 0;
-        let bridgePercent = actualTotal > 0 ? Math.round((bridgeKm / actualTotal) * 100) : 0;
-        
-        // Ensure percentages add up to 100% by adjusting the largest component
-        let totalPercent = roadPercent + terrainPercent + bridgePercent;
-        if (totalPercent !== 100 && actualTotal > 0) {
-            let difference = 100 - totalPercent;
-            // Add the difference to the largest component
-            if (roadPercent >= terrainPercent && roadPercent >= bridgePercent) {
-                roadPercent += difference;
-            } else if (terrainPercent >= bridgePercent) {
-                terrainPercent += difference;
-            } else {
-                bridgePercent += difference;
-            }
-        }
-        
+
         const compositionHtml = `
             <div class="route-composition">
-                <h4>${t('Rota Bileşimi', 'Route Composition')}</h4>
+                <h4>${t("Rota Bilesimi", "Route Composition")}</h4>
                 <div class="composition-item road">
                     <span class="composition-color" style="background-color: #2563eb;"></span>
-                    ${t('Yollar', 'Roads')}: ${roadKm.toFixed(1)} km (${roadPercent}%)
+                    ${t("Yollar", "Roads")}: ${breakdown.road.toFixed(1)} km (${percent(breakdown.road)}%)
                 </div>
                 <div class="composition-item terrain">
                     <span class="composition-color" style="background-color: #dc2626;"></span>
-                    ${t('Arazi', 'Terrain')}: ${terrainKm.toFixed(1)} km (${terrainPercent}%)
+                    ${t("Arazi", "Terrain")}: ${effectiveTerrainKm.toFixed(1)} km (${percent(effectiveTerrainKm)}%)
                 </div>
-                ${bridgeKm > 0 ? `
+                ${breakdown.sea > 0 ? `
                 <div class="composition-item bridge">
-                    <span class="composition-color" style="background-color: #7c3aed;"></span>
-                    ${t('Köprüler', 'Bridges')}: ${bridgeKm.toFixed(1)} km (${bridgePercent}%)
+                    <span class="composition-color" style="background-color: #0f766e;"></span>
+                    ${t("Deniz", "Sea")}: ${breakdown.sea.toFixed(1)} km (${percent(breakdown.sea)}%)
                 </div>` : ''}
             </div>
         `;
-        
-    // Prepare profile for advanced section
-    const profileKey = bridge.state.travelProfile || 'walk';
-    const profile = bridge.config.profiles[profileKey] || bridge.config.profiles.walk;
-    const kmPerDay = profile.speed; // speed is km/day in our config
-    const daily = computeDailyBreakdown(bridge.state.routeLegs, kmPerDay);
+
+        const totalDurationText = formatDuration(totalDays);
+        const landSpeed = activeProfile.landSpeed || defaultProfile.landSpeed;
+        const daily = computeDailyBreakdown(bridge.state.routeLegs, landSpeed);
 
         summaryDiv.innerHTML = `
-            <h3>${t('Hibrit Rota Özeti', 'Hybrid Route Summary')}</h3>
+            <h3>${t("Hibrit Rota Ozeti", "Hybrid Route Summary")}</h3>
             ${alertsHtml}
             <div class="route-totals">
-                <p><strong>${t('Toplam Mesafe', 'Total Distance')}:</strong> ${totalKm.toFixed(2)} km</p>
+                <p><strong>${t("Toplam Mesafe", "Total Distance")}:</strong> ${totalKm.toFixed(2)} km</p>
+                <p><strong>${t("Tahmini Sure", "Estimated Duration")}:</strong> ${totalDurationText}</p>
                 ${compositionHtml}
             </div>
             <details id="advanced-travel" class="advanced-travel">
-                <summary>${t('Gelişmiş', 'Advanced')}</summary>
+                <summary>${t("Gelismis", "Advanced")}</summary>
                 <div class="travel-profile">
-                    <label for="travel-profile-select"><strong>${t('Profil', 'Profile')}:</strong></label>
+                    <label for="travel-profile-select"><strong>${t("Profil", "Profile")}:</strong></label>
                     <select id="travel-profile-select">
-                        ${Object.keys(bridge.config.profiles).map(k => `<option value="${k}" ${k===profileKey?'selected':''}>${capitalize(k)}</option>`).join('')}
+                        ${Object.keys(profiles).map(k => `<option value="${k}" ${k===activeProfileKey?'selected':''}>${capitalize(k)}</option>`).join('')}
                     </select>
-                    <span class="profile-meta">${kmPerDay} ${t('km/gün', 'km/day')}</span>
+                    <span class="profile-meta">${landSpeed} ${t("km/gun", "km/day")}</span>
                 </div>
             </details>
             <div class="route-legs">
-                <h4>${t('Rota Ayakları', 'Route Legs')}</h4>
+                <h4>${t("Rota Ayaklari", "Route Legs")}</h4>
                 <ul>${legsHtml}</ul>
             </div>
-            
             <div class="route-share">
-                <button id="copy-route-link" class="wiki-link">${t('Rota Bağlantısını Kopyala', 'Copy Route Link')}</button>
+                <button id="copy-route-link" class="wiki-link">${t("Rota Baglantisini Kopyala", "Copy Route Link")}</button>
             </div>
         `;
 
-        // Wire share button
         const copyBtn = document.getElementById('copy-route-link');
         if(copyBtn && window.__nimea_route_share){
             copyBtn.addEventListener('click', () => window.__nimea_route_share.copyShareLink());
         }
-        
-        // Add styling if not already present
+
         ensureRoutingStyles();
 
-        // Wire Advanced behavior: show markers only when open
         const adv = document.getElementById('advanced-travel');
         if (adv) {
             const updateAdv = () => {
                 if (adv.open) {
                     try {
-                        const wagon = 'wagon';
-                        const sel2 = document.getElementById('travel-profile-select');
-                        if (sel2) sel2.value = wagon;
-                        bridge.state.travelProfile = wagon;
-                        const d2 = computeDailyBreakdown(bridge.state.routeLegs, (bridge.config.profiles[wagon]||{}).speed || kmPerDay);
-                        renderDayMarkers(d2, t);
+                        renderDayMarkers(daily, t);
                     } catch (e) { console.warn('Failed to render day markers:', e); }
                 } else {
                     clearDayMarkers();
                 }
             };
             adv.addEventListener('toggle', updateAdv);
-            // Prevent collapsing when interacting within the details content
             adv.addEventListener('click', (ev) => {
-                // If the click is not on the summary itself, avoid toggling
                 const path = ev.composedPath ? ev.composedPath() : [];
                 const clickedSummary = path.find && path.find(el => el && el.tagName === 'SUMMARY');
                 if (!clickedSummary) {
                     ev.stopPropagation();
                 }
             });
-            // Initialize state
             updateAdv();
         }
 
-        // Wire profile change (keep Advanced open and update markers/meta in place)
         const sel = document.getElementById('travel-profile-select');
         if (sel) {
             const applyProfile = (value) => {
                 bridge.state.travelProfile = value;
-                // Update meta text (km/day)
+                const prof = profiles[value] || defaultProfile;
                 const meta = document.querySelector('.profile-meta');
-                const prof = bridge.config.profiles[value] || bridge.config.profiles.walk;
-                if (meta && prof) meta.textContent = `${prof.speed} ${t('km/gün', 'km/day')}`;
-                // Recompute and re-render markers only if Advanced is open
+                if (meta && prof.landSpeed) {
+                    meta.textContent = `${prof.landSpeed} ${t('km/gun', 'km/day')}`;
+                }
                 const advEl = document.getElementById('advanced-travel');
                 if (advEl && advEl.open) {
-                    const d = computeDailyBreakdown(bridge.state.routeLegs, prof.speed);
-                    renderDayMarkers(d, t);
+                    const breakdown = computeDailyBreakdown(bridge.state.routeLegs, prof.landSpeed || defaultProfile.landSpeed);
+                    renderDayMarkers(breakdown, t);
                 } else {
                     clearDayMarkers();
                 }
             };
             sel.addEventListener('change', (e) => applyProfile(e.target.value));
-            // Prevent the select interactions from toggling/collapsing the details
             ['click', 'mousedown', 'touchstart'].forEach(evt => {
                 sel.addEventListener(evt, (e) => e.stopPropagation());
             });
         }
     }
+
 
     /**
      * Update route summary for calculating state
@@ -791,6 +790,26 @@
             bridge.state.dayMarkerLayers.forEach(m => bridge.map.removeLayer(m));
         }
         bridge.state.dayMarkerLayers = [];
+    }
+
+    function formatDuration(days) {
+        if (!isFinite(days) || days <= 0) {
+            return t('<1 gun', '<1 hour');
+        }
+        const totalHours = Math.round(days * 24);
+        const dayCount = Math.floor(totalHours / 24);
+        const hourCount = totalHours % 24;
+        const parts = [];
+        if (dayCount) {
+            parts.push(`${dayCount}${isEnglishPage() ? 'd' : 'g'}`);
+        }
+        if (hourCount) {
+            parts.push(`${hourCount}h`);
+        }
+        if (!parts.length) {
+            parts.push(isEnglishPage() ? '<1h' : '<1s');
+        }
+        return parts.join(' ');
     }
 
     function capitalize(s){ return (s||'').charAt(0).toUpperCase() + (s||'').slice(1); }

@@ -6,13 +6,56 @@
     // This will be set by the main routing module
     let bridge = {};
     let TERRAIN_COSTS = {};
+    let WATER_KINDS = new Set(['sea', 'water', 'unpassable']);
+    let cachedBounds = null;
 
     /**
      * Initialize terrain utilities with dependencies
      */
-    function initTerrainUtils(bridgeObj, terrainCosts) {
+    function initTerrainUtils(bridgeObj, terrainCosts, options = {}) {
         bridge = bridgeObj;
-        TERRAIN_COSTS = terrainCosts;
+        TERRAIN_COSTS = terrainCosts || {};
+
+        if (Array.isArray(options.waterKinds) && options.waterKinds.length) {
+            WATER_KINDS = new Set(options.waterKinds);
+        } else if (bridge.config && Array.isArray(bridge.config.waterTerrainKinds)) {
+            WATER_KINDS = new Set(bridge.config.waterTerrainKinds);
+        }
+
+        cachedBounds = null;
+    }
+
+    function isWaterKind(kind) {
+        return !!kind && WATER_KINDS.has(kind);
+    }
+
+    function polygonRings(geometry) {
+        if (!geometry) return [];
+        if (geometry.type === 'Polygon') return geometry.coordinates || [];
+        if (geometry.type === 'MultiPolygon') {
+            return geometry.coordinates ? geometry.coordinates.flat() : [];
+        }
+        return [];
+    }
+
+    function pointInAnyRing(point, geometry) {
+        const rings = polygonRings(geometry);
+        for (const ring of rings) {
+            if (ring && ring.length && pointInPolygon(point, ring)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function lineIntersectsGeometry(lineStart, lineEnd, geometry) {
+        const rings = polygonRings(geometry);
+        for (const ring of rings) {
+            if (ring && ring.length && lineIntersectsPolygon(lineStart, lineEnd, ring)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -20,40 +63,45 @@
      * Checks terrain features to determine movement cost
      */
     function getTerrainCostAtPoint(x, y) {
-        // Check different terrain types (avoiding infinite costs that block routing)
-        const terrainFeatures = bridge.state.terrain.features;
-        
-        // Check for high-cost terrain first (blocked/unpassable)
-        const highCostFeatures = terrainFeatures.filter(f => 
-            ['unpassable', 'blocked'].includes(f.properties.kind)
-        );
-        
-        for (const feature of highCostFeatures) {
-            if (feature.geometry.type === 'Polygon') {
-                if (pointInPolygon([x, y], feature.geometry.coordinates[0])) {
-                    // High cost but not infinite - allows pathfinding around obstacles
-                    return TERRAIN_COSTS[feature.properties.kind] || TERRAIN_COSTS.blocked;
-                }
+        if (!bridge.state || !bridge.state.terrain) {
+            return TERRAIN_COSTS.normal || 1.0;
+        }
+
+        const terrainFeatures = bridge.state.terrain.features || [];
+        let cost = TERRAIN_COSTS.normal || 1.0;
+
+        for (const feature of terrainFeatures) {
+            const geometry = feature.geometry;
+            if (!geometry || !geometry.type) continue;
+
+            if (!pointInAnyRing([x, y], geometry)) {
+                continue;
+            }
+
+            const kind = feature.properties ? feature.properties.kind : null;
+
+            if (kind === 'blocked' || kind === 'unpassable') {
+                return TERRAIN_COSTS[kind] || TERRAIN_COSTS.unpassable || TERRAIN_COSTS.blocked || 50;
+            }
+
+            if (isWaterKind(kind)) {
+                return TERRAIN_COSTS.unpassable || TERRAIN_COSTS.blocked || 50;
+            }
+
+            if (kind === 'difficult') {
+                return TERRAIN_COSTS.difficult || cost;
+            }
+
+            if (kind === 'medium') {
+                cost = Math.max(cost, TERRAIN_COSTS.medium || cost);
+            }
+
+            if (kind === 'forest') {
+                cost = Math.max(cost, TERRAIN_COSTS.forest || cost);
             }
         }
-        
-        // Check for difficult terrain types
-        const difficultFeatures = terrainFeatures.filter(f => 
-            ['difficult', 'medium'].includes(f.properties.kind)
-        );
-        
-        for (const feature of difficultFeatures) {
-            if (feature.geometry.type === 'Polygon') {
-                if (pointInPolygon([x, y], feature.geometry.coordinates[0])) {
-                    // Map terrain types to costs
-                    const kind = feature.properties.kind;
-                    return TERRAIN_COSTS[kind] || TERRAIN_COSTS.difficult;
-                }
-            }
-        }
-        
-        // Default to normal terrain (open areas)
-        return TERRAIN_COSTS.normal;
+
+        return cost;
     }
 
     /**
@@ -61,40 +109,137 @@
      * Used for bridge connections between graph layers
      */
     function getTerrainCostBetweenPoints(from, to) {
-        const terrainFeatures = bridge.state.terrain.features;
-        
-        // Check for high-cost terrain (blocked/unpassable)
-        const highCostFeatures = terrainFeatures.filter(f => 
-            ['unpassable', 'blocked'].includes(f.properties.kind)
-        );
-        
-        for (const feature of highCostFeatures) {
-            if (feature.geometry.type === 'Polygon') {
-                // Simple line-polygon intersection check
-                if (lineIntersectsPolygon([from.x, from.y], [to.x, to.y], feature.geometry.coordinates[0])) {
-                    // High cost but not infinite - allows pathfinding around
-                    return TERRAIN_COSTS[feature.properties.kind] || TERRAIN_COSTS.blocked;
-                }
+        if (!bridge.state || !bridge.state.terrain) {
+            return TERRAIN_COSTS.normal || 1.0;
+        }
+
+        const terrainFeatures = bridge.state.terrain.features || [];
+        let cost = TERRAIN_COSTS.normal || 1.0;
+
+        for (const feature of terrainFeatures) {
+            const geometry = feature.geometry;
+            if (!geometry || !geometry.type) continue;
+
+            if (!lineIntersectsGeometry([from.x, from.y], [to.x, to.y], geometry)) {
+                continue;
+            }
+
+            const kind = feature.properties ? feature.properties.kind : null;
+
+            if (kind === 'blocked' || kind === 'unpassable') {
+                return TERRAIN_COSTS[kind] || TERRAIN_COSTS.unpassable || TERRAIN_COSTS.blocked || 50;
+            }
+
+            if (isWaterKind(kind)) {
+                return TERRAIN_COSTS.unpassable || TERRAIN_COSTS.blocked || 50;
+            }
+
+            if (kind === 'difficult') {
+                return TERRAIN_COSTS.difficult || cost;
+            }
+
+            if (kind === 'medium') {
+                cost = Math.max(cost, TERRAIN_COSTS.medium || cost);
+            }
+
+            if (kind === 'forest') {
+                cost = Math.max(cost, TERRAIN_COSTS.forest || cost);
             }
         }
-        
-        // Check for difficult terrain (increases cost)
-        const difficultFeatures = terrainFeatures.filter(f => 
-            ['difficult', 'medium'].includes(f.properties.kind)
-        );
-        
-        for (const feature of difficultFeatures) {
-            if (feature.geometry.type === 'Polygon') {
-                // If path goes through difficult terrain, increase cost
-                if (lineIntersectsPolygon([from.x, from.y], [to.x, to.y], feature.geometry.coordinates[0])) {
-                    const kind = feature.properties.kind;
-                    return TERRAIN_COSTS[kind] || TERRAIN_COSTS.difficult;
-                }
+
+        return cost;
+    }
+
+    /**
+     * Determine if a point lies inside a water feature
+     */
+    function isWaterAtPoint(x, y) {
+        if (!bridge.state || !bridge.state.terrain) {
+            return false;
+        }
+
+        const terrainFeatures = bridge.state.terrain.features || [];
+        for (const feature of terrainFeatures) {
+            const kind = feature.properties ? feature.properties.kind : null;
+            if (!isWaterKind(kind)) continue;
+            if (!feature.geometry) continue;
+            if (pointInAnyRing([x, y], feature.geometry)) {
+                return true;
             }
         }
-        
-        // Default terrain cost
-        return TERRAIN_COSTS.normal;
+        return false;
+    }
+
+    /**
+     * Compute cached data bounds including terrain and marker footprint
+     */
+    function computeDataBounds() {
+        if (cachedBounds) {
+            return cachedBounds;
+        }
+
+        const bounds = {
+            minX: Infinity,
+            minY: Infinity,
+            maxX: -Infinity,
+            maxY: -Infinity
+        };
+
+        const update = (x, y) => {
+            if (x < bounds.minX) bounds.minX = x;
+            if (x > bounds.maxX) bounds.maxX = x;
+            if (y < bounds.minY) bounds.minY = y;
+            if (y > bounds.maxY) bounds.maxY = y;
+        };
+
+        const markers = (bridge.state && Array.isArray(bridge.state.markers)) ? bridge.state.markers : [];
+        markers.forEach(marker => {
+            if (typeof marker.x === 'number' && typeof marker.y === 'number') {
+                update(marker.x, marker.y);
+            }
+        });
+
+        const features = bridge.state && bridge.state.terrain ? bridge.state.terrain.features : [];
+        (features || []).forEach(feature => {
+            if (!feature.geometry) return;
+            const geom = feature.geometry;
+
+            function pushCoords(coords) {
+                coords.forEach(pt => {
+                    if (Array.isArray(pt[0])) {
+                        pushCoords(pt);
+                    } else if (typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+                        update(pt[0], pt[1]);
+                    }
+                });
+            }
+
+            if (geom.type === 'Point') {
+                update(geom.coordinates[0], geom.coordinates[1]);
+            } else if (geom.type === 'LineString' || geom.type === 'MultiPoint') {
+                pushCoords(geom.coordinates);
+            } else if (geom.type === 'MultiLineString' || geom.type === 'Polygon') {
+                pushCoords(geom.coordinates);
+            } else if (geom.type === 'MultiPolygon') {
+                pushCoords(geom.coordinates);
+            }
+        });
+
+        if (!isFinite(bounds.minX) || !isFinite(bounds.minY) ||
+            !isFinite(bounds.maxX) || !isFinite(bounds.maxY)) {
+            cachedBounds = { minX: 0, minY: 0, maxX: 2500, maxY: 2500 };
+            return cachedBounds;
+        }
+
+        const padding = 50;
+        cachedBounds = {
+            minX: Math.max(0, bounds.minX - padding),
+            minY: Math.max(0, bounds.minY - padding),
+            maxX: bounds.maxX + padding,
+            maxY: bounds.maxY + padding
+        };
+
+        return cachedBounds;
     }
 
     /**
@@ -103,16 +248,16 @@
     function pointInPolygon(point, polygon) {
         const [x, y] = point;
         let inside = false;
-        
+
         for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
             const [xi, yi] = polygon[i];
             const [xj, yj] = polygon[j];
-            
+
             if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
                 inside = !inside;
             }
         }
-        
+
         return inside;
     }
 
@@ -121,7 +266,6 @@
      * Checks if a line segment intersects any edge of a polygon
      */
     function lineIntersectsPolygon(lineStart, lineEnd, polygon) {
-        // Check if line intersects any edge of the polygon
         for (let i = 0; i < polygon.length - 1; i++) {
             if (linesIntersect(
                 lineStart, lineEnd,
@@ -167,6 +311,8 @@
         initTerrainUtils,
         getTerrainCostAtPoint,
         getTerrainCostBetweenPoints,
+        isWaterAtPoint,
+        computeDataBounds,
         pointInPolygon,
         lineIntersectsPolygon,
         linesIntersect,

@@ -8,6 +8,9 @@
     let TERRAIN_COSTS = {};
     let TERRAIN_GRID_SIZE = 50;
     let ROAD_CONNECTION_DISTANCE = 150;
+    const PORT_TO_SEA_DISTANCE_MULTIPLIER = 3;
+    const MAX_PORT_SEA_LINKS = 6;
+    const ROAD_ENTRY_PENALTY = 0.35;
 
     // Terrain utility functions (will be imported)
     let getTerrainCostAtPoint, getTerrainCostBetweenPoints;
@@ -38,7 +41,7 @@
         buildRoadsLayer(nodes, edges, edgeMap);
         buildTerrainGridLayer(nodes, edges, edgeMap, seaTravelEnabled);
         buildMarkersLayer(nodes);
-        buildBridgeConnections(nodes, edges, edgeMap);
+        buildBridgeConnections(nodes, edges, edgeMap, seaTravelEnabled);
         
         const graph = { nodes, edges, edgeMap };
         console.log(`Built graph with ${nodes.size} nodes and ${edges.length} edges`);
@@ -237,12 +240,15 @@
     /**
      * Build bridge connections - connect markers to road and terrain layers
      */
-    function buildBridgeConnections(nodes, edges, edgeMap) {
+    function buildBridgeConnections(nodes, edges, edgeMap, seaTravelEnabled = false) {
         console.log(`Building bridge connections for ${bridge.state.markers.length} markers`);
         bridge.state.markers.forEach(marker => {
             console.log(`Connecting marker ${marker.name} (${marker.id}) to road and terrain layers`);
             connectMarkerToRoads(marker, nodes, edges, edgeMap);
             connectMarkerToTerrain(marker, nodes, edges, edgeMap);
+            if (seaTravelEnabled && marker.isPort === true) {
+                connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled);
+            }
         });
     }
 
@@ -274,18 +280,19 @@
         // Connect to road if within reasonable distance
         if (closestRoadNode && closestDistance < ROAD_CONNECTION_DISTANCE) {
             const connectionCost = getTerrainCostBetweenPoints(markerPos, nodes.get(closestRoadNode));
-            
+            const bridgeCost = connectionCost + ROAD_ENTRY_PENALTY;
+
             const fwd = { 
                 from: markerNodeId, 
                 to: closestRoadNode, 
-                cost: connectionCost, 
+                cost: bridgeCost, 
                 distance: closestDistance,
                 type: 'road_bridge'
             };
             const rev = { 
                 from: closestRoadNode, 
                 to: markerNodeId, 
-                cost: connectionCost, 
+                cost: bridgeCost, 
                 distance: closestDistance,
                 type: 'road_bridge'
             };
@@ -302,138 +309,136 @@
     function connectMarkerToTerrain(marker, nodes, edges, edgeMap) {
         const markerNodeId = `marker_${marker.id}`;
         const markerPos = { x: marker.x, y: marker.y };
-        
-        // Try multiple connection strategies for better connectivity
         const connectionsAttempted = [];
-        
-        // Strategy 1: Connect to nearest grid point
-        const gridX = Math.round(marker.x / TERRAIN_GRID_SIZE) * TERRAIN_GRID_SIZE;
-        const gridY = Math.round(marker.y / TERRAIN_GRID_SIZE) * TERRAIN_GRID_SIZE;
-        const terrainNodeId = `terrain_${gridX}_${gridY}`;
-        
-        if (nodes.has(terrainNodeId)) {
+
+        const addConnection = (terrainNodeId, edgeType) => {
+            if (!terrainNodeId || connectionsAttempted.includes(terrainNodeId)) return;
             const terrainNode = nodes.get(terrainNodeId);
+            if (!terrainNode) return;
+            if (terrainNode.isWater) return;
+
             const distance = Math.sqrt(
-                Math.pow(terrainNode.x - marker.x, 2) + 
+                Math.pow(terrainNode.x - marker.x, 2) +
                 Math.pow(terrainNode.y - marker.y, 2)
             );
-            
+            const maxDistance = TERRAIN_GRID_SIZE * 12;
+            if (distance > maxDistance) return;
+
             const connectionCost = getTerrainCostBetweenPoints(markerPos, terrainNode);
-            
             const fwd = {
                 from: markerNodeId,
                 to: terrainNodeId,
                 cost: connectionCost,
-                distance: distance,
-                type: 'terrain_bridge'
+                distance,
+                type: edgeType
             };
             const rev = {
                 from: terrainNodeId,
                 to: markerNodeId,
                 cost: connectionCost,
-                distance: distance,
-                type: 'terrain_bridge'
+                distance,
+                type: edgeType
             };
-            
+
             edges.push(fwd, rev);
             edgeMap.set(`${markerNodeId}|${terrainNodeId}`, fwd);
             edgeMap.set(`${terrainNodeId}|${markerNodeId}`, rev);
             connectionsAttempted.push(terrainNodeId);
-        }
-        
-        // Strategy 2: Connect to surrounding grid points for redundancy
-        const offsets = [
-            [-TERRAIN_GRID_SIZE, 0], [TERRAIN_GRID_SIZE, 0],   // horizontal neighbors
-            [0, -TERRAIN_GRID_SIZE], [0, TERRAIN_GRID_SIZE],   // vertical neighbors
-            [-TERRAIN_GRID_SIZE, -TERRAIN_GRID_SIZE], [TERRAIN_GRID_SIZE, TERRAIN_GRID_SIZE], // diagonals
-            [-TERRAIN_GRID_SIZE, TERRAIN_GRID_SIZE], [TERRAIN_GRID_SIZE, -TERRAIN_GRID_SIZE]
-        ];
-        
-        offsets.forEach(([dx, dy]) => {
-            const neighborX = gridX + dx;
-            const neighborY = gridY + dy;
-            const neighborNodeId = `terrain_${neighborX}_${neighborY}`;
-            
-            if (nodes.has(neighborNodeId) && !connectionsAttempted.includes(neighborNodeId)) {
-                const neighborNode = nodes.get(neighborNodeId);
-                const distance = Math.sqrt(
-                    Math.pow(neighborNode.x - marker.x, 2) + 
-                    Math.pow(neighborNode.y - marker.y, 2)
-                );
-                
-                // Only connect to nearby neighbors to avoid overly long connections
-                if (distance <= TERRAIN_GRID_SIZE * 1.5) {
-                    const connectionCost = getTerrainCostBetweenPoints(markerPos, neighborNode);
-                    
-                    const fwd = {
-                        from: markerNodeId,
-                        to: neighborNodeId,
-                        cost: connectionCost,
-                        distance: distance,
-                        type: 'terrain_bridge_backup'
-                    };
-                    const rev = {
-                        from: neighborNodeId,
-                        to: markerNodeId,
-                        cost: connectionCost,
-                        distance: distance,
-                        type: 'terrain_bridge_backup'
-                    };
-                    
-                    edges.push(fwd, rev);
-                    edgeMap.set(`${markerNodeId}|${neighborNodeId}`, fwd);
-                    edgeMap.set(`${neighborNodeId}|${markerNodeId}`, rev);
-                    connectionsAttempted.push(neighborNodeId);
-                }
-            }
-        });
-        
-        if (connectionsAttempted.length === 0) {
-            console.warn(`⚠️ Failed to connect marker ${marker.name} to terrain grid - trying emergency connections`);
-            
-            // Emergency fallback: try connecting to ANY nearby terrain node
-            for (let [nodeId, node] of nodes) {
-                if (node.type === 'terrain_node') {
-                    const distance = Math.sqrt(
-                        Math.pow(node.x - marker.x, 2) + 
-                        Math.pow(node.y - marker.y, 2)
-                    );
-                    
-                    if (distance <= TERRAIN_GRID_SIZE * 3) { // Expanded search radius
-                        const connectionCost = getTerrainCostBetweenPoints(markerPos, node);
-                        
-                        const fwd = {
-                            from: markerNodeId,
-                            to: nodeId,
-                            cost: connectionCost,
-                            distance: distance,
-                            type: 'terrain_bridge_emergency'
-                        };
-                        const rev = {
-                            from: nodeId,
-                            to: markerNodeId,
-                            cost: connectionCost,
-                            distance: distance,
-                            type: 'terrain_bridge_emergency'
-                        };
-                        
-                        edges.push(fwd, rev);
-                        edgeMap.set(`${markerNodeId}|${nodeId}`, fwd);
-                        edgeMap.set(`${nodeId}|${markerNodeId}`, rev);
-                        connectionsAttempted.push(nodeId);
-                        
-                        console.log(`✅ Emergency connected ${marker.name} to terrain node ${nodeId} (distance: ${distance.toFixed(1)})`);
-                        break; // Only need one emergency connection
-                    }
-                }
+        };
+
+        const gridX = Math.round(marker.x / TERRAIN_GRID_SIZE) * TERRAIN_GRID_SIZE;
+        const gridY = Math.round(marker.y / TERRAIN_GRID_SIZE) * TERRAIN_GRID_SIZE;
+        addConnection(`terrain_${gridX}_${gridY}`, 'terrain_bridge');
+
+        const preferredDistance = TERRAIN_GRID_SIZE * 6;
+        const fallbackDistance = TERRAIN_GRID_SIZE * 12;
+        const preferred = [];
+        const fallback = [];
+
+        for (let [nodeId, node] of nodes) {
+            if (node.type !== 'terrain_node') continue;
+            if (node.isWater) continue;
+
+            const distance = Math.sqrt(
+                Math.pow(node.x - marker.x, 2) +
+                Math.pow(node.y - marker.y, 2)
+            );
+
+            if (distance <= preferredDistance) {
+                preferred.push({ nodeId, distance });
+            } else if (distance <= fallbackDistance) {
+                fallback.push({ nodeId, distance });
             }
         }
-        
-        if (connectionsAttempted.length === 0) {
-            console.error(`❌ CRITICAL: Failed to connect marker ${marker.name} to ANY terrain nodes!`);
+
+        let candidates = preferred.length ? preferred : fallback;
+
+        if (candidates.length) {
+            candidates
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, 4)
+                .forEach(candidate => {
+                    const edgeType = candidate.distance <= preferredDistance ? 'terrain_bridge_backup' : 'terrain_bridge_extended';
+                    addConnection(candidate.nodeId, edgeType);
+                });
+        }
+
+        if (!connectionsAttempted.length) {
+            console.error(`? CRITICAL: Failed to connect marker ${marker.name} to ANY terrain nodes!`);
         } else {
-            console.log(`✅ Connected marker ${marker.name} to ${connectionsAttempted.length} terrain nodes`);
+            console.log(`? Connected marker ${marker.name} to ${connectionsAttempted.length} terrain nodes`);
         }
+    }
+
+
+    function connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled) {
+        if (!seaTravelEnabled) return;
+
+        const markerNodeId = `marker_${marker.id}`;
+        const markerPos = { x: marker.x, y: marker.y };
+        const maxDistance = TERRAIN_GRID_SIZE * PORT_TO_SEA_DISTANCE_MULTIPLIER;
+        const fallbackDistance = maxDistance * 2;
+        const candidates = [];
+
+        for (let [nodeId, node] of nodes) {
+            if (node.type !== 'terrain_node' || !node.isWater) continue;
+            const distance = Math.sqrt(
+                Math.pow(node.x - markerPos.x, 2) +
+                Math.pow(node.y - markerPos.y, 2)
+            );
+            if (distance <= fallbackDistance) {
+                candidates.push({ nodeId, distance });
+            }
+        }
+
+        if (!candidates.length) {
+            console.warn(`No navigable sea nodes found near port ${marker.name}`);
+            return;
+        }
+
+        candidates.sort((a, b) => a.distance - b.distance);
+        const links = candidates.slice(0, MAX_PORT_SEA_LINKS);
+        const portCost = Math.min(TERRAIN_COSTS.road || 0.7, TERRAIN_COSTS.normal || 1.0);
+
+        links.forEach(({ nodeId, distance }) => {
+            const fwd = {
+                from: markerNodeId,
+                to: nodeId,
+                cost: portCost,
+                distance,
+                type: 'sea_port_link'
+            };
+            const rev = {
+                from: nodeId,
+                to: markerNodeId,
+                cost: portCost,
+                distance,
+                type: 'sea_port_link'
+            };
+            edges.push(fwd, rev);
+            edgeMap.set(`${markerNodeId}|${nodeId}`, fwd);
+            edgeMap.set(`${nodeId}|${markerNodeId}`, rev);
+        });
     }
 
     /**

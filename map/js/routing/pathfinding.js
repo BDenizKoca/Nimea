@@ -3,6 +3,12 @@
 (function(window) {
     'use strict';
 
+    let bridge = null;
+
+    function initPathfinding(bridgeObj) {
+        bridge = bridgeObj;
+    }
+
     /**
      * A* algorithm implementation for efficient pathfinding
      * Uses heuristic to guide search toward target
@@ -105,12 +111,15 @@
     function isPortNode(nodeId, nodesMap) {
         const node = nodesMap.get(nodeId);
         if (!node) return false;
-        
+
         // Check if this is a marker node (type is 'marker' not 'marker_node')
         if (node.type === 'marker') {
             // Access global bridge to check if marker has isPort flag
-            if (window.bridge && window.bridge.state && window.bridge.state.markers) {
-                const marker = window.bridge.state.markers.find(m => m.id === node.markerId);
+            if (node.isPort !== undefined) {
+                return !!node.isPort;
+            }
+            if (bridge && bridge.state && bridge.state.markers) {
+                const marker = bridge.state.markers.find(m => m.id === node.markerId);
                 return marker && marker.isPort === true;
             }
         }
@@ -248,6 +257,7 @@
 
     // Expose module functions
     window.__nimea_pathfinding = {
+        initPathfinding,
         findShortestPathAStar,
         findShortestPath,
         heuristic,

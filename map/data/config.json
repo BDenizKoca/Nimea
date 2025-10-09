@@ -1,34 +1,76 @@
 {
-    "kmPerPixel": 0.4347826087,
+    "kmPerPixel": 0.8695652174,
     "overlays": {
         "regions": "overlays/regions.png",
         "borders": "overlays/borders.png"
     },
+    "terrainCosts": {
+        "road": 0.7,
+        "normal": 1.0,
+        "forest": 1.2,
+        "medium": 1.5,
+        "difficult": 2.0,
+        "sea": 0.25,
+        "unpassable": 50.0,
+        "blocked": 50.0
+    },
+    "waterTerrainKinds": [
+        "sea",
+        "water",
+        "unpassable"
+    ],
+    "profiles": {
+        "walking": {
+            "label": "Walking",
+            "landSpeed": 30,
+            "seaSpeed": 120
+        },
+        "wagon": {
+            "label": "Wagon",
+            "landSpeed": 50,
+            "seaSpeed": 120
+        },
+        "horse": {
+            "label": "Horse",
+            "landSpeed": 60,
+            "seaSpeed": 120
+        },
+        "sea": {
+            "label": "Sea Voyage",
+            "landSpeed": 30,
+            "seaSpeed": 120
+        }
+    },
     "terrainTypes": {
         "road": {
-            "cost": 1.0,
+            "cost": 0.7,
             "description": "Well-maintained roads",
             "color": "#6a8caf"
         },
+        "normal": {
+            "cost": 1.0,
+            "description": "Open terrain",
+            "color": "#90EE90"
+        },
+        "forest": {
+            "cost": 1.2,
+            "description": "Wooded areas",
+            "color": "#228B22"
+        },
+        "medium": {
+            "cost": 1.5,
+            "description": "Hills or light forest",
+            "color": "#8b7765"
+        },
         "difficult": {
-            "cost": 5.0,
+            "cost": 2.0,
             "description": "Challenging terrain",
             "color": "#a0522d"
         },
-        "forest": {
-            "cost": 3.0,
-            "description": "Dense woodland",
-            "color": "#228B22"
-        },
         "unpassable": {
             "cost": null,
-            "description": "Impassable barriers",
-            "color": "#c0392b"
-        },
-        "normal": {
-            "cost": 2.0,
-            "description": "Open terrain",
-            "color": "#90EE90"
+            "description": "Impassable barriers / sea",
+            "color": "#1f4e79"
         }
     },
     "routingConfig": {
