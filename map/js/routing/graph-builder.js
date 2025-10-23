@@ -14,18 +14,21 @@
     const ROAD_COST_MULTIPLIER = 0.4;
 
     // Terrain utility functions (will be imported)
-    let getTerrainCostAtPoint, getTerrainCostBetweenPoints;
+    let getTerrainCostAtPoint, getTerrainCostBetweenPoints, isWaterAtPoint;
+    let terrainUtils = null;
 
     /**
      * Initialize the graph builder with dependencies
      */
-    function initGraphBuilder(bridgeObj, terrainCosts, gridSize, roadDistance, terrainUtils) {
+    function initGraphBuilder(bridgeObj, terrainCosts, gridSize, roadDistance, terrainUtilsModule) {
         bridge = bridgeObj;
         TERRAIN_COSTS = terrainCosts;
         TERRAIN_GRID_SIZE = gridSize;
         ROAD_CONNECTION_DISTANCE = roadDistance;
-        getTerrainCostAtPoint = terrainUtils.getTerrainCostAtPoint;
-        getTerrainCostBetweenPoints = terrainUtils.getTerrainCostBetweenPoints;
+        terrainUtils = terrainUtilsModule;
+        getTerrainCostAtPoint = terrainUtilsModule.getTerrainCostAtPoint;
+        getTerrainCostBetweenPoints = terrainUtilsModule.getTerrainCostBetweenPoints;
+        isWaterAtPoint = terrainUtilsModule.isWaterAtPoint;
     }
 
     /**
@@ -187,8 +190,8 @@
                 const originalCost = getTerrainCostAtPoint(x, y);
 
                 // Determine if this is water using proper terrain feature detection
-                const isWaterNode = terrainUtils && terrainUtils.isWaterAtPoint
-                    ? terrainUtils.isWaterAtPoint(x, y)
+                const isWaterNode = isWaterAtPoint
+                    ? isWaterAtPoint(x, y)
                     : (originalCost >= 50.0); // fallback to cost-based detection
 
                 // If this is water and sea travel is enabled, make it navigable
