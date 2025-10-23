@@ -25,17 +25,26 @@
         }
     }
 
-    /**        if (bridge.state.route.length === 0) { 
-            summaryDiv.innerHTML = '<p>Henüz rota tanımlanmadı. Bir işaretçi ekleyin.</p>'; 
-            return; 
-        }
-        if (bridge.state.route.length === 1) { 
-            summaryDiv.innerHTML = '<p>Rota hesaplamak için ikinci bir durak ekleyin.</p>'; 
-            return; 
-        } Analyze path segments to distinguish between road and terrain traversal
+    function buildNaturalizeOptions(pointCount, baseOverrides = {}) {
+        const isShortPath = pointCount <= 4;
+        const defaults = {
+            nudgeStep: 8,
+            nudgeOffset: 4,
+            smoothRatio: 0.25,
+            terrainSensitivity: 1.0
+        };
+        const adaptive = {
+            nudgeStrength: isShortPath ? 0.3 : 0.8,
+            smoothIterations: isShortPath ? 1 : 2
+        };
+        return Object.assign({}, defaults, baseOverrides, adaptive);
+    }
+
+    /**
+     * Analyze path segments to distinguish between road and terrain traversal
      */
     function analyzePathSegments(pathIds, routingGraph, startMarker = null, endMarker = null) {
-        console.log(`Analyzing path with ${pathIds.length} nodes:`, pathIds);
+        console.log(`analyzePathSegments: Analyzing path with ${pathIds.length} nodes:`, pathIds);
         const segments = [];
         let currentSegment = null;
         
@@ -61,7 +70,13 @@
                 if (edge && (edge.type === 'road' || edge.type === 'road_intersection')) {
                     segmentType = 'road';
                 } else if (edge && edge.type.includes('bridge')) {
-                    segmentType = 'bridge';
+                    if (edge.type.startsWith('terrain')) {
+                        segmentType = 'terrain';
+                    } else if (edge.type.startsWith('road')) {
+                        segmentType = 'road';
+                    } else {
+                        segmentType = 'bridge';
+                    }
                 } else if (edge && edge.type.indexOf('sea') === 0) {
                     segmentType = 'sea';
                 }
@@ -145,9 +160,49 @@
             }
         }
         
-        console.log(`Generated ${segments.length} segments for visualization`);
-        return segments;
-        
+        console.log(`analyzePathSegments: Generated ${segments.length} segments for visualization`);
+        segments.forEach((seg, idx) => {
+            console.log(`  Segment ${idx}: type=${seg.type}, points=${seg.points?.length || 0}`);
+        });
+
+        const sanitizedSegments = [];
+        segments.forEach(segment => {
+            const dedupedPoints = [];
+            const dedupedFlags = [];
+
+            if (segment.points && segment.points.length) {
+                segment.points.forEach((pt, idx) => {
+                    const last = dedupedPoints.length ? dedupedPoints[dedupedPoints.length - 1] : null;
+                    const flag = segment.markerFlags ? segment.markerFlags[idx] : false;
+                    if (last && last[0] === pt[0] && last[1] === pt[1]) {
+                        if (flag && dedupedFlags.length) {
+                            dedupedFlags[dedupedFlags.length - 1] = true;
+                        }
+                        return;
+                    }
+                    dedupedPoints.push(pt);
+                    dedupedFlags.push(flag);
+                });
+            }
+
+            if (dedupedPoints.length >= 2) {
+                sanitizedSegments.push({
+                    type: segment.type,
+                    points: dedupedPoints,
+                    markerFlags: dedupedFlags
+                });
+            }
+        });
+
+        if (sanitizedSegments.length) {
+            console.log(`analyzePathSegments: Returning ${sanitizedSegments.length} sanitized segments`);
+            sanitizedSegments.forEach((seg, idx) => {
+                console.log(`  Sanitized segment ${idx}: type=${seg.type}, points=${seg.points?.length || 0}`);
+            });
+            return sanitizedSegments;
+        }
+
+        console.log(`analyzePathSegments: No sanitization needed, returning ${segments.length} original segments`);
         return segments;
     }
 
@@ -210,19 +265,56 @@
      * Render a unified smooth blue route line connecting all segments
      */
     function renderUnifiedRouteLine(segments) {
-        if (!segments || segments.length === 0) return;
-        
+        if (!segments || segments.length === 0) {
+            console.warn('renderUnifiedRouteLine: No segments provided');
+            return;
+        }
+
+        const terrainOnly = segments.every(segment => segment.type === 'terrain');
+        const bridgeOnly = segments.every(segment => segment.type === 'bridge');
+
+        console.log(`renderUnifiedRouteLine: ${segments.length} segments, terrainOnly=${terrainOnly}, bridgeOnly=${bridgeOnly}`);
+
         // Collect all points from all segments to create a continuous path
         const allPoints = [];
         const markerFlags = [];
 
         segments.forEach((segment, index) => {
-            if (segment.points && segment.points.length > 0) {
-                const pointsToAdd = index === 0 ? segment.points : segment.points.slice(1);
-                const flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
-                const flagsToAdd = index === 0 ? flagsSource : flagsSource.slice(1);
-                allPoints.push(...pointsToAdd);
-                markerFlags.push(...flagsToAdd);
+            if (!segment.points || segment.points.length === 0) {
+                console.warn(`Segment ${index} has no points`);
+                return;
+            }
+
+            // For subsequent segments, skip first point only if segment has more than 1 point
+            // and the first point matches the last point we already have
+            let pointsToAdd = segment.points;
+            let flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
+            let flagsToAdd = flagsSource;
+
+            if (index > 0 && segment.points.length > 1) {
+                // Check if first point duplicates the last point we have
+                const lastPoint = allPoints.length ? allPoints[allPoints.length - 1] : null;
+                if (lastPoint &&
+                    lastPoint[0] === segment.points[0][0] &&
+                    lastPoint[1] === segment.points[0][1]) {
+                    // Skip the duplicate first point
+                    pointsToAdd = segment.points.slice(1);
+                    flagsToAdd = flagsSource.slice(1);
+                }
+            }
+
+            for (let i = 0; i < pointsToAdd.length; i++) {
+                const point = pointsToAdd[i];
+                const flag = flagsToAdd[i] ?? false;
+                const lastPoint = allPoints.length ? allPoints[allPoints.length - 1] : null;
+                if (lastPoint && lastPoint[0] === point[0] && lastPoint[1] === point[1]) {
+                    if (flag && !markerFlags[markerFlags.length - 1]) {
+                        markerFlags[markerFlags.length - 1] = true;
+                    }
+                    continue;
+                }
+                allPoints.push(point);
+                markerFlags.push(flag);
             }
         });
 
@@ -230,25 +322,27 @@
             while (markerFlags.length < allPoints.length) markerFlags.push(false);
         }
 
-        if (allPoints.length < 2) return;
+        if (allPoints.length < 2) {
+            console.warn(`renderUnifiedRouteLine: Insufficient points (${allPoints.length}), cannot render`);
+            return;
+        }
 
-        // Convert Leaflet [lat, lng] format to [x, y] for naturalization
-        const coordinatesForNaturalization = allPoints.map(point => [point[1], point[0]]); // swap to [x, y]
+        console.log(`renderUnifiedRouteLine: Collected ${allPoints.length} points from segments`);
+
+        const shouldNaturalize = pathNaturalizer && !terrainOnly && !bridgeOnly;
+
+        console.log(`renderUnifiedRouteLine: shouldNaturalize=${shouldNaturalize}`);
+
+        // Convert Leaflet [lat, lng] format to [x, y] for naturalization when needed
+        const coordinatesForNaturalization = shouldNaturalize
+            ? allPoints.map(point => [point[1], point[0]])
+            : [];
 
         let finalPoints = allPoints; // Default to original points
 
-        // Apply path naturalization if available
-        if (pathNaturalizer) {
+        // Apply path naturalization if available and the path isn't pure terrain
+        if (shouldNaturalize) {
             try {
-                const naturalizeOptions = {
-                    nudgeStep: 8,
-                    nudgeOffset: 4,
-                    nudgeStrength: 1.0,
-                    smoothIterations: 2,
-                    smoothRatio: 0.25,
-                    terrainSensitivity: 1.0
-                };
-
                 const anchorSet = new Set([0, coordinatesForNaturalization.length - 1]);
                 markerFlags.forEach((flag, idx) => {
                     if (flag) anchorSet.add(idx);
@@ -263,10 +357,11 @@
                     const slice = coordinatesForNaturalization.slice(startIdx, endIdx + 1);
                     let processedSlice = slice;
                     if (slice.length > 1) {
+                        const sliceOptions = buildNaturalizeOptions(slice.length);
                         processedSlice = pathNaturalizer.naturalizePath(
                             slice,
                             null,
-                            naturalizeOptions
+                            sliceOptions
                         );
                     }
                     if (combined.length) {
@@ -280,7 +375,11 @@
                 // Convert back to Leaflet format [lat, lng]
                 finalPoints = pathNaturalizer.coordinatesToLeafletFormat(naturalizedCoords);
 
-                console.log(`Naturalized path: ${allPoints.length} → ${finalPoints.length} points`);
+                console.log(`Naturalized path: ${allPoints.length} -> ${finalPoints.length} points`);
+                if (!finalPoints || finalPoints.length < 2) {
+                    console.warn('Naturalization produced insufficient points, reverting to original path');
+                    finalPoints = allPoints;
+                }
             } catch (error) {
                 console.warn("Path naturalization failed, using original path:", error);
                 finalPoints = allPoints;
@@ -307,8 +406,46 @@
             bridge.state.routeUnifiedPolyline = null;
         }
 
+        console.log(`renderUnifiedRouteLine: Creating polyline with ${finalPoints.length} points`);
+        console.log(`First point: [${finalPoints[0][0]}, ${finalPoints[0][1]}]`);
+        console.log(`Last point: [${finalPoints[finalPoints.length-1][0]}, ${finalPoints[finalPoints.length-1][1]}]`);
+
         const unifiedPolyline = L.polyline(finalPoints, unifiedStyle).addTo(bridge.map);
         bridge.state.routeUnifiedPolyline = unifiedPolyline;
+        console.log('renderUnifiedRouteLine: Polyline added to map successfully');
+    }
+
+    function renderTerrainOnlyPolyline(segments) {
+        if (!segments || !segments.length) return;
+
+        const mergedPoints = [];
+        segments.forEach((segment, index) => {
+            if (!segment.points || segment.points.length === 0) return;
+            const section = index === 0 ? segment.points : segment.points.slice(1);
+            mergedPoints.push(...section);
+        });
+
+        if (mergedPoints.length < 2) return;
+
+        if (bridge.state.routeUnifiedPolyline) {
+            if (bridge.map.hasLayer(bridge.state.routeUnifiedPolyline)) {
+                bridge.map.removeLayer(bridge.state.routeUnifiedPolyline);
+            }
+            bridge.state.routeUnifiedPolyline = null;
+        }
+
+        const style = {
+            color: '#1e3a8a',
+            weight: 3,
+            opacity: 0.85,
+            pane: 'routePane',
+            className: 'terrain-route-line',
+            smoothFactor: 1
+        };
+
+        console.log(`Rendering terrain-only leg with ${mergedPoints.length} points`);
+        const polyline = L.polyline(mergedPoints, style).addTo(bridge.map);
+        bridge.state.routeUnifiedPolyline = polyline;
     }
 
     /**
@@ -319,23 +456,55 @@
         if (!routeLegs || !routeLegs.length) return;
 
         // Gather all segment points in Leaflet [lat,lng]
-        const points = [];
-        const markerFlags = [];
+        const rawPoints = [];
+        const rawFlags = [];
         routeLegs.forEach((leg, li) => {
             if (!leg.segments) return;
             leg.segments.forEach((segment, si) => {
                 if (!segment.points || segment.points.length === 0) return;
-                const pointsToAdd = points.length === 0 ? segment.points : segment.points.slice(1);
-                const flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
-                const flagsToAdd = points.length === 0 ? flagsSource : flagsSource.slice(1);
-                points.push(...pointsToAdd);
-                markerFlags.push(...flagsToAdd);
+
+                // For subsequent segments, skip first point only if segment has more than 1 point
+                // and the first point matches the last point we already have
+                let pointsToAdd = segment.points;
+                let flagsSource = segment.markerFlags || new Array(segment.points.length).fill(false);
+                let flagsToAdd = flagsSource;
+
+                if (rawPoints.length > 0 && segment.points.length > 1) {
+                    // Check if first point duplicates the last point we have
+                    const lastPoint = rawPoints[rawPoints.length - 1];
+                    if (lastPoint &&
+                        lastPoint[0] === segment.points[0][0] &&
+                        lastPoint[1] === segment.points[0][1]) {
+                        // Skip the duplicate first point
+                        pointsToAdd = segment.points.slice(1);
+                        flagsToAdd = flagsSource.slice(1);
+                    }
+                }
+
+                rawPoints.push(...pointsToAdd);
+                rawFlags.push(...flagsToAdd);
             });
         });
-        if (markerFlags.length !== points.length) {
-            while (markerFlags.length < points.length) markerFlags.push(false);
+        if (rawFlags.length !== rawPoints.length) {
+            while (rawFlags.length < rawPoints.length) rawFlags.push(false);
         }
-        if (points.length < 2) return;
+
+        const points = [];
+        const markerFlags = [];
+        for (let i = 0; i < rawPoints.length; i++) {
+            const pt = rawPoints[i];
+            const flag = rawFlags[i] || false;
+            const last = points.length ? points[points.length - 1] : null;
+            if (last && last[0] === pt[0] && last[1] === pt[1]) {
+                if (flag && markerFlags.length) {
+                    markerFlags[markerFlags.length - 1] = true;
+                }
+                continue;
+            }
+            points.push(pt);
+            markerFlags.push(flag);
+        }
+
         if (points.length < 2) return;
 
         // Convert to [x,y] for optional naturalization (reuse existing naturalize pipeline)
@@ -357,14 +526,13 @@
                     const slice = processed.slice(startIdx, endIdx + 1);
                     let processedSlice = slice;
                     if (slice.length > 1) {
-                        processedSlice = pathNaturalizer.naturalizePath(processedSlice, null, {
+                        const sliceOptions = buildNaturalizeOptions(slice.length, {
                             nudgeStep: 10,
                             nudgeOffset: 5,
-                            nudgeStrength: 0.8,
-                            smoothIterations: 2,
                             smoothRatio: 0.22,
                             terrainSensitivity: 0.8
                         });
+                        processedSlice = pathNaturalizer.naturalizePath(processedSlice, null, sliceOptions);
                     }
                     if (combined.length) {
                         processedSlice = processedSlice.slice(1);
@@ -389,7 +557,17 @@
         const lockedForWave = Array.from(new Set(combinedAnchors)).sort((a, b) => a - b);
 
         const wavy = applyWaviness(processed, 6, 3, lockedForWave); // wavelength px, amplitude px
-        const leafletPts = pathNaturalizer ? pathNaturalizer.coordinatesToLeafletFormat(wavy) : wavy.map(c => [c[1], c[0]]);
+        let leafletPts = pathNaturalizer ? pathNaturalizer.coordinatesToLeafletFormat(wavy) : wavy.map(c => [c[1], c[0]]);
+
+        if (!leafletPts || leafletPts.length < 2) {
+            console.warn('Unified route waviness produced insufficient points, reverting to raw polyline');
+            leafletPts = points;
+        }
+
+        if (!leafletPts || leafletPts.length < 2) {
+            console.warn('Unified route fallback still insufficient points, skipping render');
+            return;
+        }
 
         // HARD SNAP: Ensure the full unified route starts/ends exactly at the current route's first/last markers
         if (bridge && bridge.state && Array.isArray(bridge.state.route) && bridge.state.route.length >= 2) {
