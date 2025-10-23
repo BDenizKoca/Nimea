@@ -746,11 +746,7 @@
             <details id="advanced-travel" class="advanced-travel">
                 <summary>${t("Gelismis", "Advanced")}</summary>
                 <div class="travel-profile">
-                    <label for="travel-profile-select"><strong>${t("Profil", "Profile")}:</strong></label>
-                    <select id="travel-profile-select">
-                        ${Object.keys(profiles).map(k => `<option value="${k}" ${k===activeProfileKey?'selected':''}>${capitalize(k)}</option>`).join('')}
-                    </select>
-                    <span class="profile-meta">${landSpeed} ${t("km/gun", "km/day")}</span>
+                    <span class="profile-info">${t("Gunluk mesafe isaretcilerini gosterir", "Shows daily distance markers")} (${activeProfile.label || capitalize(activeProfileKey)}: ${landSpeed} ${t("km/gun", "km/day")})</span>
                 </div>
             </details>
             <div class="route-legs">
@@ -774,7 +770,11 @@
             const updateAdv = () => {
                 if (adv.open) {
                     try {
-                        renderDayMarkers(daily, t);
+                        // Use the current travel mode's speed for day markers
+                        const currentProfile = profiles[bridge.state.travelProfile || activeProfileKey] || activeProfile;
+                        const currentSpeed = currentProfile.landSpeed || defaultProfile.landSpeed;
+                        const breakdown = computeDailyBreakdown(bridge.state.routeLegs, currentSpeed);
+                        renderDayMarkers(breakdown, t);
                     } catch (e) { console.warn('Failed to render day markers:', e); }
                 } else {
                     clearDayMarkers();
@@ -789,29 +789,6 @@
                 }
             });
             updateAdv();
-        }
-
-        const sel = document.getElementById('travel-profile-select');
-        if (sel) {
-            const applyProfile = (value) => {
-                bridge.state.travelProfile = value;
-                const prof = profiles[value] || defaultProfile;
-                const meta = document.querySelector('.profile-meta');
-                if (meta && prof.landSpeed) {
-                    meta.textContent = `${prof.landSpeed} ${t('km/gun', 'km/day')}`;
-                }
-                const advEl = document.getElementById('advanced-travel');
-                if (advEl && advEl.open) {
-                    const breakdown = computeDailyBreakdown(bridge.state.routeLegs, prof.landSpeed || defaultProfile.landSpeed);
-                    renderDayMarkers(breakdown, t);
-                } else {
-                    clearDayMarkers();
-                }
-            };
-            sel.addEventListener('change', (e) => applyProfile(e.target.value));
-            ['click', 'mousedown', 'touchstart'].forEach(evt => {
-                sel.addEventListener(evt, (e) => e.stopPropagation());
-            });
         }
     }
 
@@ -864,8 +841,8 @@
                 .travel-time-item small { color: #666; display: block; margin-left: 20px; }
                 .advanced-travel { margin: 10px 0; }
                 .advanced-travel > summary { cursor: pointer; font-weight: 600; }
-                .travel-profile { display:flex; align-items:center; gap:10px; margin:10px 0 0 0; }
-                #travel-profile-select { padding:4px 8px; border:1px solid #d3c0a5; border-radius:4px; background:#fff; }
+                .travel-profile { padding: 10px 0; }
+                .profile-info { font-size: 13px; color: #666; font-style: italic; }
                 .profile-note { font-size: 12px; color: #666; }
             `;
             document.head.appendChild(style);
