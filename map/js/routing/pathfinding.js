@@ -12,8 +12,15 @@
     /**
      * A* algorithm implementation for efficient pathfinding
      * Uses heuristic to guide search toward target
+     *
+     * @param {Object} graph - The routing graph
+     * @param {string} startNodeId - Starting node ID
+     * @param {string} endNodeId - Target node ID
+     * @param {number} maxIterations - Maximum iterations before timeout (default: 50000)
+     * @param {number} maxTimeMs - Maximum execution time in milliseconds (default: 5000)
+     * @returns {Array|null} - Path as array of node IDs, or null if no path found
      */
-    function findShortestPathAStar(graph, startNodeId, endNodeId) {
+    function findShortestPathAStar(graph, startNodeId, endNodeId, maxIterations = 50000, maxTimeMs = 5000) {
         if (!graph.nodes.has(startNodeId) || !graph.nodes.has(endNodeId)) {
             console.warn(`Node not found: start=${startNodeId}, end=${endNodeId}`);
             return null;
@@ -21,7 +28,7 @@
 
         const startNode = graph.nodes.get(startNodeId);
         const endNode = graph.nodes.get(endNodeId);
-        
+
         // A* data structures
         const openSet = new Set([startNodeId]);
         const cameFrom = new Map();
@@ -36,7 +43,29 @@
         gScore.set(startNodeId, 0);
         fScore.set(startNodeId, heuristic(startNode, endNode));
 
+        // Timeout protection
+        let iterations = 0;
+        const startTime = performance.now();
+
         while (openSet.size > 0) {
+            iterations++;
+
+            // Check iteration limit
+            if (iterations >= maxIterations) {
+                console.error(`A* pathfinding timeout: exceeded ${maxIterations} iterations after ${(performance.now() - startTime).toFixed(0)}ms`);
+                console.error(`  Start: ${startNodeId}, End: ${endNodeId}, Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`);
+                return null;
+            }
+
+            // Check time limit (checked every 1000 iterations for performance)
+            if (iterations % 1000 === 0) {
+                const elapsed = performance.now() - startTime;
+                if (elapsed > maxTimeMs) {
+                    console.error(`A* pathfinding timeout: exceeded ${maxTimeMs}ms (${iterations} iterations)`);
+                    console.error(`  Start: ${startNodeId}, End: ${endNodeId}, Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`);
+                    return null;
+                }
+            }
             // Find node in openSet with lowest fScore
             let current = null;
             let lowestF = Infinity;
@@ -56,6 +85,10 @@
                     path.unshift(node);
                     node = cameFrom.get(node);
                 }
+
+                const elapsed = performance.now() - startTime;
+                console.log(`A* found path in ${iterations} iterations, ${elapsed.toFixed(2)}ms (${path.length} nodes)`);
+
                 return path;
             }
 
@@ -101,6 +134,10 @@
                 }
             }
         }
+
+        const elapsed = performance.now() - startTime;
+        console.warn(`A* found no path after ${iterations} iterations, ${elapsed.toFixed(2)}ms`);
+        console.warn(`  Start: ${startNodeId}, End: ${endNodeId}, OpenSet size: ${openSet.size}`);
 
         return null; // No path found
     }

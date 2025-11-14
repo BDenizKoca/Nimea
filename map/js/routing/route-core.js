@@ -14,6 +14,7 @@
     let graphBuilder = null;
     let pathfinding = null;
     let visualizer = null;
+    let validation = null;
 
     /**
      * Initialize the route core module
@@ -26,6 +27,7 @@
         graphBuilder = window.__nimea_graph_builder;
         pathfinding = window.__nimea_pathfinding;
         visualizer = window.__nimea_visualizer;
+        validation = window.__nimea_validation;
         
         // Initialize travel mode (default to walking)
         if (!bridge.state.travelMode) {
@@ -78,12 +80,30 @@
             return; // routing disabled in DM mode
         }
 
+        // Validate marker before adding
+        if (validation) {
+            try {
+                validation.validateMarker(marker, 'addToRoute');
+            } catch (error) {
+                console.error('Failed to add marker to route:', error.message);
+                alert(`Cannot add to route: ${error.message}`);
+                return;
+            }
+        }
+
+        // Check route length limit
+        if (bridge.state.route.length >= 50) {
+            console.warn('Route is at maximum length (50 stops)');
+            alert('Maximum 50 stops allowed in a route');
+            return;
+        }
+
         bridge.state.route.push(marker);
-        
+
         if (routeUI && routeUI.openRouteSidebar) {
             routeUI.openRouteSidebar();
         }
-        
+
         recomputeRoute();
     }
 
@@ -272,6 +292,15 @@
             console.error("Failed to build routing graph");
             isCalculatingRoute = false;
             return;
+        }
+
+        // Validate graph structure (in development mode only for performance)
+        if (validation && window.location.hostname === 'localhost') {
+            try {
+                validation.validateGraph(routingGraph, 'recomputeRoute');
+            } catch (error) {
+                console.error('Graph validation failed:', error.message);
+            }
         }
 
         // Process legs sequentially 
