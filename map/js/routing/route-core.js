@@ -51,20 +51,15 @@
             if (e.target.id === 'sea-travel-checkbox') {
                 bridge.state.enableSeaTravel = !!e.target.checked;
                 console.log(`Sea travel ${bridge.state.enableSeaTravel ? 'enabled' : 'disabled'}`);
+
                 // Invalidate graph to force rebuild with new sea travel setting
                 invalidateGraph();
 
-                // Smart recomputation: Only recompute if route has ports
+                // Always recompute - let the router decide the best path
+                // The router will automatically use ports if they create a faster route
                 if (bridge.state.route.length >= 2) {
-                    const routeHasPorts = bridge.state.route.some(marker => marker.isPort === true);
-
-                    if (routeHasPorts) {
-                        console.log('Route has port cities - recomputing with sea travel');
-                        recomputeRoute();
-                    } else {
-                        console.log('No ports in route - sea travel has no effect (skipping recompute)');
-                        // Land-only routes won't change, so don't waste time recalculating
-                    }
+                    console.log('Recomputing route with sea travel ' + (bridge.state.enableSeaTravel ? 'enabled' : 'disabled'));
+                    recomputeRoute();
                 }
             }
         });
