@@ -616,15 +616,92 @@
 
     /**
      * Get map bounds for terrain grid generation
+     * Auto-detects bounds from terrain.geojson features
      */
     function getMapBounds() {
-        // Default bounds - could be enhanced to use actual map data
-        return {
-            minX: 0,
-            maxX: 2500,
-            minY: 0,
-            maxY: 2500
+        const terrain = bridge?.state?.terrain;
+
+        // If no terrain data, use fallback bounds
+        if (!terrain || !terrain.features || !Array.isArray(terrain.features)) {
+            console.warn('No terrain data available, using fallback bounds (2500x2500)');
+            return {
+                minX: 0,
+                maxX: 2500,
+                minY: 0,
+                maxY: 2500
+            };
+        }
+
+        // Extract bounds from all terrain features
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let featureCount = 0;
+        let coordinateCount = 0;
+
+        terrain.features.forEach(feature => {
+            if (!feature.geometry || !feature.geometry.coordinates) return;
+
+            featureCount++;
+            const coords = feature.geometry.coordinates;
+
+            // Handle LineString geometry
+            if (feature.geometry.type === 'LineString') {
+                coords.forEach(([x, y]) => {
+                    coordinateCount++;
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            }
+            // Handle Polygon geometry (first ring only)
+            else if (feature.geometry.type === 'Polygon') {
+                coords[0].forEach(([x, y]) => {
+                    coordinateCount++;
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                });
+            }
+            // Handle MultiPolygon geometry
+            else if (feature.geometry.type === 'MultiPolygon') {
+                coords.forEach(polygon => {
+                    polygon[0].forEach(([x, y]) => {
+                        coordinateCount++;
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x);
+                        maxY = Math.max(maxY, y);
+                    });
+                });
+            }
+        });
+
+        // If no valid coordinates found, use fallback
+        if (!isFinite(minX) || !isFinite(maxX) || !isFinite(minY) || !isFinite(maxY)) {
+            console.warn('Could not extract valid bounds from terrain data, using fallback');
+            return {
+                minX: 0,
+                maxX: 2500,
+                minY: 0,
+                maxY: 2500
+            };
+        }
+
+        // Add small padding to bounds (5% on each side)
+        const paddingX = (maxX - minX) * 0.05;
+        const paddingY = (maxY - minY) * 0.05;
+
+        const bounds = {
+            minX: Math.floor(minX - paddingX),
+            maxX: Math.ceil(maxX + paddingX),
+            minY: Math.floor(minY - paddingY),
+            maxY: Math.ceil(maxY + paddingY)
         };
+
+        console.log(`✓ Map bounds auto-detected: ${bounds.maxX - bounds.minX}x${bounds.maxY - bounds.minY}px from ${featureCount} features (${coordinateCount} coordinates)`);
+
+        return bounds;
     }
 
     // Expose module functions

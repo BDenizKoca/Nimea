@@ -59,7 +59,7 @@
         blocked: 50.0
     };
 
-    let TERRAIN_GRID_SIZE = 25;  // Denser grid for better connectivity
+    let TERRAIN_GRID_SIZE = 20;  // High-density grid for maximum routing accuracy (20px = 6.25x more nodes than 50px)
     let ROAD_CONNECTION_DISTANCE = 300; // Increased range for road connections
 
     /**

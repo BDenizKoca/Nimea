@@ -799,7 +799,36 @@
     function updateRouteSummaryCalculating() {
         const summaryDiv = document.getElementById('route-summary');
         if (!summaryDiv) return;
-        summaryDiv.innerHTML = `<p>${t('Rota hesaplanıyor...', 'Calculating route...')}</p>`;
+
+        const loadingHtml = `
+            <div style="padding: 20px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <div style="margin-bottom: 15px;">
+                    <div class="route-loading-spinner" style="
+                        display: inline-block;
+                        width: 40px;
+                        height: 40px;
+                        border: 4px solid rgba(255,255,255,0.3);
+                        border-top-color: white;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    "></div>
+                </div>
+                <p style="margin: 0; font-size: 16px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    ${t('Rota hesaplanıyor...', 'Calculating route...')}
+                </p>
+                <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.9;">
+                    ${t('Lütfen bekleyin', 'Please wait')}
+                </p>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+
+        summaryDiv.innerHTML = loadingHtml;
     }
 
     /**
