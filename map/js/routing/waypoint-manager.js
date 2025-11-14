@@ -91,11 +91,14 @@
                 console.log("Invalidating routing graph due to waypoint movement");
                 bridge.routingModule.invalidateGraph();
             }
-            
-            // Check if waypoint needs reordering in route based on new position
-            console.log("Handling waypoint reordering after drag");
-            handleWaypointReordering(waypoint);
-            
+
+            // Recompute route with new waypoint position (keep current order)
+            // Don't auto-reorder - user controls order via sidebar drag-and-drop
+            if (bridge.routingModule && bridge.routingModule.recomputeRoute) {
+                console.log("Recomputing route with updated waypoint position");
+                bridge.routingModule.recomputeRoute();
+            }
+
             // Mark as just dragged to prevent accidental deletion
             marker._justDragged = true;
             marker._dragEndTime = Date.now();
@@ -167,92 +170,9 @@
         console.log(`Updated waypoint ${waypoint.name} position to [${newLat}, ${newLng}] in all data structures`);
     }
 
-    /**
-     * Handle waypoint reordering in route based on geographical position
-     */
-    function handleWaypointReordering(draggedWaypoint) {
-        console.log("handleWaypointReordering called for waypoint:", draggedWaypoint.name);
-        console.log("Current route:", bridge.state.route.map(r => r.name));
-        
-        const routeIndex = bridge.state.route.findIndex(r => r.id === draggedWaypoint.id);
-        if (routeIndex === -1) {
-            console.log("Waypoint not in route - no reordering needed");
-            return; // Waypoint not in route
-        }
-        
-        console.log(`Waypoint ${draggedWaypoint.name} found at route index ${routeIndex}`);
-        
-        // Find the optimal position for this waypoint in the route based on geographic proximity
-        let bestPosition = routeIndex;
-        let minTotalDistance = calculateRouteDistance(bridge.state.route);
-        
-        console.log(`Current route distance: ${minTotalDistance.toFixed(2)}`);
-        
-        // Try inserting the waypoint at each position and find the best one
-        for (let i = 0; i < bridge.state.route.length; i++) {
-            if (i === routeIndex) continue; // Skip current position
-            
-            // Create a test route with waypoint moved to position i
-            const testRoute = [...bridge.state.route];
-            const waypoint = testRoute.splice(routeIndex, 1)[0];
-            testRoute.splice(i, 0, waypoint);
-            
-            const testDistance = calculateRouteDistance(testRoute);
-            if (testDistance < minTotalDistance) {
-                minTotalDistance = testDistance;
-                bestPosition = i;
-            }
-        }
-        
-        console.log(`Best position for waypoint: ${bestPosition} (was ${routeIndex})`);
-        
-        // If a better position was found, reorder the route
-        if (bestPosition !== routeIndex) {
-            console.log(`Reordering waypoint ${draggedWaypoint.name} from position ${routeIndex} to ${bestPosition}`);
-            
-            if (bridge.routingModule && bridge.routingModule.reorderRoute) {
-                console.log("Calling bridge.routingModule.reorderRoute");
-                bridge.routingModule.reorderRoute(routeIndex, bestPosition);
-            } else {
-                console.log("bridge.routingModule.reorderRoute not available, using fallback");
-                // Fallback manual reordering
-                const waypoint = bridge.state.route.splice(routeIndex, 1)[0];
-                bridge.state.route.splice(bestPosition, 0, waypoint);
-                
-                // Trigger route recomputation
-                if (bridge.routingModule && bridge.routingModule.recomputeRoute) {
-                    console.log("Calling bridge.routingModule.recomputeRoute (fallback)");
-                    bridge.routingModule.recomputeRoute();
-                } else {
-                    console.error("bridge.routingModule.recomputeRoute not available!");
-                }
-            }
-        } else {
-            // Even if position doesn't change, recompute route for new coordinates
-            console.log("Waypoint position optimal - recomputing route for new coordinates");
-            if (bridge.routingModule && bridge.routingModule.recomputeRoute) {
-                console.log("Calling bridge.routingModule.recomputeRoute (position optimal)");
-                bridge.routingModule.recomputeRoute();
-            } else {
-                console.error("bridge.routingModule.recomputeRoute not available!");
-            }
-        }
-    }
-
-    /**
-     * Calculate total distance of a route (simple Euclidean distance)
-     */
-    function calculateRouteDistance(route) {
-        if (!route || route.length < 2) return 0;
-        
-        let totalDistance = 0;
-        for (let i = 1; i < route.length; i++) {
-            const dx = route[i].x - route[i-1].x;
-            const dy = route[i].y - route[i-1].y;
-            totalDistance += Math.sqrt(dx * dx + dy * dy);
-        }
-        return totalDistance;
-    }
+    // REMOVED: handleWaypointReordering - no longer auto-reorder on drag
+    // User controls waypoint order manually via sidebar drag-and-drop
+    // Dragging a waypoint on the map now only updates its position, not its order
 
     /**
      * Setup touch handlers for waypoint deletion on mobile

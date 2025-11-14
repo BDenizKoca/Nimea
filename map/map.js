@@ -30,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         profiles: {
             walking:   { label: 'Walking',    landSpeed: 30, seaSpeed: 120 },
             wagon:     { label: 'Wagon',      landSpeed: 50, seaSpeed: 120 },
-            horse:     { label: 'Horse',      landSpeed: 60, seaSpeed: 120 },
-            sea:       { label: 'Sea Voyage', landSpeed: 30, seaSpeed: 120 }
+            horse:     { label: 'Horse',      landSpeed: 60, seaSpeed: 120 }
         }
     };
 
