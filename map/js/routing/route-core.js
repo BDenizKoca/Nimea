@@ -53,9 +53,18 @@
                 console.log(`Sea travel ${bridge.state.enableSeaTravel ? 'enabled' : 'disabled'}`);
                 // Invalidate graph to force rebuild with new sea travel setting
                 invalidateGraph();
-                // Recompute route (will rebuild graph with sea travel enabled/disabled)
+
+                // Smart recomputation: Only recompute if route has ports
                 if (bridge.state.route.length >= 2) {
-                    recomputeRoute();
+                    const routeHasPorts = bridge.state.route.some(marker => marker.isPort === true);
+
+                    if (routeHasPorts) {
+                        console.log('Route has port cities - recomputing with sea travel');
+                        recomputeRoute();
+                    } else {
+                        console.log('No ports in route - sea travel has no effect (skipping recompute)');
+                        // Land-only routes won't change, so don't waste time recalculating
+                    }
                 }
             }
         });

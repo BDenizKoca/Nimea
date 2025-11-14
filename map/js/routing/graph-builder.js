@@ -307,9 +307,11 @@
             const roadInfo = connectMarkerToRoads(marker, nodes, edges, edgeMap);
 
             // Track if marker is actually connected to sea
+            // CRITICAL: Only ports (not waypoints) should access sea
+            // Waypoints are temporary routing points and should NOT act as port gates
             let connectedToSea = false;
             if (seaTravelEnabled) {
-                const allowSea = marker.isPort === true || marker.isWaypoint === true;
+                const allowSea = marker.isPort === true; // Only actual ports!
                 if (allowSea) {
                     connectedToSea = connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled);
                 }
@@ -548,9 +550,9 @@
         }
 
         if (!connectionsAttempted.length) {
-            console.error(`? CRITICAL: Failed to connect marker ${marker.name} to ANY terrain nodes!`);
+            console.error(`❌ CRITICAL: Failed to connect marker ${marker.name} to ANY terrain nodes!`);
         } else {
-            console.log(`? Connected marker ${marker.name} to ${connectionsAttempted.length} terrain nodes`);
+            console.log(`✓ Connected marker ${marker.name} to ${connectionsAttempted.length} terrain nodes`);
         }
     }
 
