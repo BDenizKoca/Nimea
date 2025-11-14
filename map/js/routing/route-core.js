@@ -49,9 +49,9 @@
             if (e.target.id === 'sea-travel-checkbox') {
                 bridge.state.enableSeaTravel = !!e.target.checked;
                 console.log(`Sea travel ${bridge.state.enableSeaTravel ? 'enabled' : 'disabled'}`);
-                // Invalidate graph when sea travel option changes
+                // Invalidate graph to force rebuild with new sea travel setting
                 invalidateGraph();
-                // Recompute route with new settings
+                // Recompute route (will rebuild graph with sea travel enabled/disabled)
                 if (bridge.state.route.length >= 2) {
                     recomputeRoute();
                 }
@@ -199,8 +199,11 @@
             console.warn("Route calculation already in progress. Ignoring new request.");
             return;
         }
-        
-        // Clear existing route visualization more thoroughly
+
+        // AGGRESSIVE ROUTE CLEARING - Remove all existing route visualizations
+        console.log("Clearing all existing route polylines before recalculation...");
+
+        // Clear route polylines array
         if (bridge.state.routePolylines && Array.isArray(bridge.state.routePolylines)) {
             bridge.state.routePolylines.forEach(pl => {
                 if (pl && bridge.map.hasLayer(pl)) {
@@ -210,21 +213,38 @@
         }
         bridge.state.routePolylines = [];
         bridge.state.routeLegs = [];
-        
-        if (bridge.state.routePolyline) { 
+
+        // Clear main route polyline
+        if (bridge.state.routePolyline) {
             if (bridge.map.hasLayer(bridge.state.routePolyline)) {
-                bridge.map.removeLayer(bridge.state.routePolyline); 
+                bridge.map.removeLayer(bridge.state.routePolyline);
             }
-            bridge.state.routePolyline = null; 
+            bridge.state.routePolyline = null;
         }
-        
-        // Clear unified polyline as well
+
+        // Clear unified polyline
         if (bridge.state.routeUnifiedPolyline) {
             if (bridge.map.hasLayer(bridge.state.routeUnifiedPolyline)) {
                 bridge.map.removeLayer(bridge.state.routeUnifiedPolyline);
             }
             bridge.state.routeUnifiedPolyline = null;
         }
+
+        // Comprehensive cleanup - remove any orphaned route polylines
+        bridge.map.eachLayer(layer => {
+            if (layer instanceof L.Polyline) {
+                const element = layer.getElement();
+                if (element && (
+                    element.classList.contains('route-polyline') ||
+                    element.classList.contains('route-segment') ||
+                    layer.options.pane === 'routePane' ||
+                    (layer.options.className && layer.options.className.includes('route'))
+                )) {
+                    console.log("Removing orphaned route polyline during recompute");
+                    bridge.map.removeLayer(layer);
+                }
+            }
+        });
         
         if (routeUI && routeUI.updateRouteDisplay) {
             routeUI.updateRouteDisplay(reorderRoute);

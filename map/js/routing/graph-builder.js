@@ -305,13 +305,18 @@
         activeMarkers.forEach(marker => {
             console.log(`Connecting marker ${marker.name} (${marker.id}) to road and terrain layers`);
             const roadInfo = connectMarkerToRoads(marker, nodes, edges, edgeMap);
-            connectMarkerToTerrain(marker, nodes, edges, edgeMap, roadInfo);
+
+            // Track if marker is actually connected to sea
+            let connectedToSea = false;
             if (seaTravelEnabled) {
                 const allowSea = marker.isPort === true || marker.isWaypoint === true;
                 if (allowSea) {
-                    connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled);
+                    connectedToSea = connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled);
                 }
             }
+
+            // Pass sea connection info to terrain connector
+            connectMarkerToTerrain(marker, nodes, edges, edgeMap, roadInfo, connectedToSea);
         });
     }
 
@@ -452,13 +457,17 @@
     /**
      * Connect marker to terrain grid
      */
-    function connectMarkerToTerrain(marker, nodes, edges, edgeMap, roadInfo = null) {
+    function connectMarkerToTerrain(marker, nodes, edges, edgeMap, roadInfo = null, connectedToSea = false) {
         const markerNodeId = `marker_${marker.id}`;
         const markerPos = { x: marker.x, y: marker.y };
         const connectionsAttempted = [];
         const nearestRoadDistance = roadInfo && isFinite(roadInfo.nearestDistance) ? roadInfo.nearestDistance : Infinity;
         const roadInfluenceRadius = Math.max(ROAD_CONNECTION_DISTANCE * 2.5, ROAD_CONNECTION_DISTANCE + 50);
-        const preferRoad = marker.isWaypoint === true &&
+
+        // CRITICAL FIX: Only apply road preference penalty if marker is actually connected to sea
+        // This prevents sea travel from affecting land-only routes
+        const preferRoad = connectedToSea &&
+            marker.isWaypoint === true &&
             roadInfo &&
             roadInfo.connectedCount > 0 &&
             nearestRoadDistance <= roadInfluenceRadius * 1.25;
@@ -546,8 +555,12 @@
     }
 
 
+    /**
+     * Connect marker to sea nodes
+     * Returns true if successfully connected to sea, false otherwise
+     */
     function connectMarkerToSea(marker, nodes, edges, edgeMap, seaTravelEnabled) {
-        if (!seaTravelEnabled) return;
+        if (!seaTravelEnabled) return false;
 
         const markerNodeId = `marker_${marker.id}`;
         const markerPos = { x: marker.x, y: marker.y };
@@ -567,8 +580,8 @@
         }
 
         if (!candidates.length) {
-            console.warn(`No navigable sea nodes found near port ${marker.name}`);
-            return;
+            console.log(`No navigable sea nodes found near ${marker.name} - not connected to sea`);
+            return false; // Not connected to sea
         }
 
         candidates.sort((a, b) => a.distance - b.distance);
@@ -594,6 +607,9 @@
             edgeMap.set(`${markerNodeId}|${nodeId}`, fwd);
             edgeMap.set(`${nodeId}|${markerNodeId}`, rev);
         });
+
+        console.log(`✓ Connected ${marker.name} to ${links.length} sea nodes`);
+        return true; // Successfully connected to sea
     }
 
     /**
