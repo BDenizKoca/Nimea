@@ -969,6 +969,49 @@
 
     function capitalize(s){ return (s||'').charAt(0).toUpperCase() + (s||'').slice(1); }
 
+    /**
+     * Show user-friendly routing error in the UI
+     */
+    function showRoutingError(errorMessage) {
+        const summaryEl = document.getElementById('route-summary');
+        if (!summaryEl) return;
+
+        const errorHtml = `
+            <div style="padding: 15px; background: #fee; border: 2px solid #c33; border-radius: 8px; margin: 10px 0;">
+                <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 24px; margin-right: 10px;">⚠️</span>
+                    <strong style="color: #c33; font-size: 16px;">
+                        ${t('Rota Hesaplama Hatası', 'Routing Error')}
+                    </strong>
+                </div>
+                <p style="margin: 8px 0; color: #333; font-size: 14px;">
+                    ${escapeHtml(errorMessage)}
+                </p>
+                <button
+                    onclick="window.__nimea_route_core?.recomputeRoute?.()"
+                    style="margin-top: 10px; padding: 8px 16px; background: #4a90e2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    ${t('Tekrar Dene', 'Retry')}
+                </button>
+                <button
+                    onclick="window.__nimea_route_core?.clearRoute?.()"
+                    style="margin-top: 10px; margin-left: 8px; padding: 8px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    ${t('Rotayı Temizle', 'Clear Route')}
+                </button>
+            </div>
+        `;
+
+        summaryEl.innerHTML = errorHtml;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Expose module functions
     window.__nimea_visualizer = {
         initVisualizer,
@@ -978,7 +1021,8 @@
         updateRouteSummaryFromLegs,
         updateRouteSummaryCalculating,
         updateRouteSummaryEmpty,
-        renderFullUnifiedRoute
+        renderFullUnifiedRoute,
+        showRoutingError
     };
 
 })(window);

@@ -5,6 +5,7 @@
 
     let bridge = {};
     let waypointCounter = 0; // Counter for waypoint naming
+    const waypointEventHandlers = new Map(); // Track event handlers for cleanup
 
     /**
      * Initialize the waypoint manager module
@@ -67,9 +68,18 @@
         // Store bidirectional references for reliable state management
         waypoint._leafletMarker = marker;
         marker._waypointData = waypoint;
-        
+
+        // Event handler functions (stored for cleanup)
+        const handlers = {
+            dragend: null,
+            dragstart: null,
+            click: null,
+            touchstart: null,
+            touchend: null
+        };
+
         // Handle dragging - update waypoint position and handle reordering
-        marker.on('dragend', (e) => {
+        handlers.dragend = (e) => {
             const newLatLng = e.target.getLatLng();
             console.log(`Waypoint ${waypoint.name} dragged to: ${newLatLng.lat}, ${newLatLng.lng}`);
             
@@ -92,10 +102,10 @@
             setTimeout(() => {
                 marker._justDragged = false;
             }, 300); // Longer delay to prevent accidental clicks
-        });
-        
+        };
+
         // Click to delete waypoint with improved click detection
-        marker.on('click', (e) => {
+        handlers.click = (e) => {
             // Prevent deletion if recently dragged
             if (marker._justDragged || (marker._dragEndTime && Date.now() - marker._dragEndTime < 300)) {
                 console.log("Click ignored - waypoint was recently dragged");
@@ -107,17 +117,27 @@
             if (confirm(`Delete ${waypoint.name}?`)) {
                 deleteWaypoint(waypoint.id);
             }
-        });
-        
+        };
+
         // Track dragging states more reliably
-        marker.on('dragstart', () => {
+        handlers.dragstart = () => {
             marker._isDragging = true;
             marker._justDragged = false;
             console.log(`Started dragging waypoint ${waypoint.name}`);
-        });
+        };
+
+        // Register all event handlers
+        marker.on('dragend', handlers.dragend);
+        marker.on('click', handlers.click);
+        marker.on('dragstart', handlers.dragstart);
 
         // Add touch support for waypoint deletion on mobile
-        setupWaypointTouchHandlers(marker, waypoint);
+        const touchHandlers = setupWaypointTouchHandlers(marker, waypoint);
+        handlers.touchstart = touchHandlers.touchstart;
+        handlers.touchend = touchHandlers.touchend;
+
+        // Store handlers for cleanup
+        waypointEventHandlers.set(waypoint.id, handlers);
 
         return waypoint;
     }
@@ -236,15 +256,16 @@
 
     /**
      * Setup touch handlers for waypoint deletion on mobile
+     * Returns handlers for cleanup tracking
      */
     function setupWaypointTouchHandlers(marker, waypoint) {
-        marker.on('touchstart', (e) => {
+        const touchstart = (e) => {
             e.originalEvent.preventDefault();
             marker._touchStartTime = Date.now();
             marker._touchStartPos = e.originalEvent.touches[0];
-        });
+        };
 
-        marker.on('touchend', (e) => {
+        const touchend = (e) => {
             e.originalEvent.preventDefault();
             
             if (marker._touchStartTime && marker._touchStartPos) {
@@ -265,15 +286,21 @@
                 marker._touchStartTime = null;
                 marker._touchStartPos = null;
             }
-        });
+        };
+
+        // Register touch handlers
+        marker.on('touchstart', touchstart);
+        marker.on('touchend', touchend);
+
+        return { touchstart, touchend };
     }
 
     /**
-     * Delete a waypoint - improved with better state cleanup
+     * Delete a waypoint - improved with better state cleanup and memory leak prevention
      */
     function deleteWaypoint(waypointId) {
         console.log(`Deleting waypoint: ${waypointId}`);
-        
+
         // Find waypoint in markers array
         const markerIndex = bridge.state.markers.findIndex(m => m.id === waypointId);
         let waypoint = null;
@@ -290,8 +317,28 @@
             console.log(`Removed waypoint from route at index ${routeIndex}`);
         }
 
+        // Clean up event listeners to prevent memory leaks
+        const handlers = waypointEventHandlers.get(waypointId);
+        if (handlers && waypoint && waypoint._leafletMarker) {
+            const marker = waypoint._leafletMarker;
+
+            // Remove all registered event handlers
+            if (handlers.dragend) marker.off('dragend', handlers.dragend);
+            if (handlers.dragstart) marker.off('dragstart', handlers.dragstart);
+            if (handlers.click) marker.off('click', handlers.click);
+            if (handlers.touchstart) marker.off('touchstart', handlers.touchstart);
+            if (handlers.touchend) marker.off('touchend', handlers.touchend);
+
+            console.log(`Cleaned up event listeners for waypoint ${waypointId}`);
+        }
+
+        // Remove handler registry
+        waypointEventHandlers.delete(waypointId);
+
         // Remove from map using multiple methods to ensure cleanup
         if (waypoint && waypoint._leafletMarker) {
+            // Leaflet's off() without arguments removes ALL listeners (safety net)
+            waypoint._leafletMarker.off();
             bridge.map.removeLayer(waypoint._leafletMarker);
             console.log("Removed waypoint marker using stored reference");
         }
@@ -323,34 +370,61 @@
      */
     function clearAllWaypoints() {
         console.log("Clearing all waypoints...");
-        
+
         // Find all waypoints in markers
         const waypoints = bridge.state.markers.filter(m => m.isWaypoint);
-        
-        // Remove each waypoint
+
+        // Remove each waypoint with proper cleanup
         waypoints.forEach(waypoint => {
+            // Clean up event listeners
+            const handlers = waypointEventHandlers.get(waypoint.id);
+            if (handlers && waypoint._leafletMarker) {
+                const marker = waypoint._leafletMarker;
+                if (handlers.dragend) marker.off('dragend', handlers.dragend);
+                if (handlers.dragstart) marker.off('dragstart', handlers.dragstart);
+                if (handlers.click) marker.off('click', handlers.click);
+                if (handlers.touchstart) marker.off('touchstart', handlers.touchstart);
+                if (handlers.touchend) marker.off('touchend', handlers.touchend);
+            }
+            waypointEventHandlers.delete(waypoint.id);
+
             // Remove from map if it has a marker
             if (waypoint._leafletMarker) {
+                waypoint._leafletMarker.off(); // Remove all listeners (safety net)
                 bridge.map.removeLayer(waypoint._leafletMarker);
             }
-            
+
             // Also try to find and remove by searching all map layers
             bridge.map.eachLayer(layer => {
-                if (layer instanceof L.Marker && layer.options.markerId === waypoint.id) {
+                if (layer instanceof L.Marker && layer.options.waypointId === waypoint.id) {
+                    layer.off(); // Remove all listeners
                     bridge.map.removeLayer(layer);
                 }
             });
         });
-        
+
         // Remove all waypoints from markers array
         bridge.state.markers = bridge.state.markers.filter(m => !m.isWaypoint);
-        
+
         // Invalidate graph to remove waypoint connections
         if (bridge.routingModule && bridge.routingModule.invalidateGraph) {
             bridge.routingModule.invalidateGraph();
         }
-        
-        console.log(`Cleared ${waypoints.length} waypoints`);
+
+        console.log(`Cleared ${waypoints.length} waypoints (with event listener cleanup)`);
+    }
+
+    /**
+     * Get memory usage statistics for debugging
+     */
+    function getMemoryStats() {
+        return {
+            totalWaypoints: waypointEventHandlers.size,
+            handlersRegistered: Array.from(waypointEventHandlers.entries()).map(([id, handlers]) => ({
+                id,
+                handlerCount: Object.values(handlers).filter(h => h !== null).length
+            }))
+        };
     }
 
     // Expose public functions
@@ -358,7 +432,8 @@
         initWaypointManager,
         createWaypoint,
         deleteWaypoint,
-        clearAllWaypoints
+        clearAllWaypoints,
+        getMemoryStats
     };
 
 })(window);

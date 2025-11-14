@@ -212,12 +212,119 @@
     }
 
     /**
+     * Validate and repair route state before computation
+     */
+    function validateAndRepairRouteState() {
+        const errors = [];
+
+        // Check that all route entries exist in markers
+        const markerIds = new Set(bridge.state.markers.map(m => m.id));
+        const invalidIndices = [];
+
+        bridge.state.route.forEach((routeEntry, index) => {
+            if (!routeEntry) {
+                errors.push(`Route[${index}]: entry is null/undefined`);
+                invalidIndices.push(index);
+            } else if (!markerIds.has(routeEntry.id)) {
+                errors.push(`Route[${index}]: marker ${routeEntry.id} not in markers array`);
+                invalidIndices.push(index);
+            }
+        });
+
+        // Check for duplicate route entries
+        const routeIds = bridge.state.route.map(r => r?.id).filter(Boolean);
+        const uniqueIds = new Set(routeIds);
+        if (routeIds.length !== uniqueIds.size) {
+            errors.push('Route contains duplicate markers');
+        }
+
+        // Check routeLegs consistency
+        const expectedLegs = Math.max(0, bridge.state.route.length - 1);
+        if (bridge.state.routeLegs.length > expectedLegs) {
+            errors.push(`RouteLegs mismatch: ${bridge.state.routeLegs.length} vs expected ${expectedLegs}`);
+        }
+
+        // Auto-repair if errors found
+        if (errors.length > 0) {
+            console.warn('Route state validation found issues:', errors);
+            console.log('Auto-repairing route state...');
+
+            // Remove invalid entries (iterate backwards to maintain indices)
+            for (let i = invalidIndices.length - 1; i >= 0; i--) {
+                const idx = invalidIndices[i];
+                console.log(`Removing invalid route entry at index ${idx}`);
+                bridge.state.route.splice(idx, 1);
+            }
+
+            // Remove duplicates - keep first occurrence
+            const seen = new Set();
+            bridge.state.route = bridge.state.route.filter(r => {
+                if (!r || !r.id) return false;
+                if (seen.has(r.id)) return false;
+                seen.add(r.id);
+                return true;
+            });
+
+            // Clear excess route legs
+            if (bridge.state.routeLegs.length > expectedLegs) {
+                bridge.state.routeLegs = [];
+            }
+
+            console.log(`Route state repaired - ${errors.length} issues fixed`);
+        }
+
+        return { valid: errors.length === 0, errors, repaired: errors.length > 0 };
+    }
+
+    /**
+     * Safe wrapper for route recomputation with error handling
+     */
+    function safeRecomputeRoute() {
+        try {
+            recomputeRoute();
+        } catch (error) {
+            console.error('Route computation failed with error:', error);
+            console.error('Stack trace:', error.stack);
+
+            // Reset calculation flag
+            isCalculatingRoute = false;
+
+            // Show user-friendly error
+            if (visualizer && visualizer.showRoutingError) {
+                visualizer.showRoutingError(error.message || 'Unknown routing error');
+            }
+
+            // Degrade gracefully - clear broken state
+            bridge.state.routeLegs = [];
+
+            // Update UI to show error state
+            if (routeUI && routeUI.updateRouteDisplay) {
+                routeUI.updateRouteDisplay(reorderRoute);
+            }
+
+            // Log to console for debugging
+            console.error('Route computation state:', {
+                routeLength: bridge.state.route.length,
+                seaTravelEnabled: bridge.state.enableSeaTravel,
+                travelMode: bridge.state.travelMode,
+                hasGraph: !!routingGraph
+            });
+        }
+    }
+
+    /**
      * Recompute entire route with sequential leg processing
      */
     function recomputeRoute() {
         if (isCalculatingRoute) {
             console.warn("Route calculation already in progress. Ignoring new request.");
             return;
+        }
+
+        // Validate and repair state before computation
+        const stateValidation = validateAndRepairRouteState();
+        if (stateValidation.repaired) {
+            console.log('Route state was repaired before recomputation');
         }
 
         // AGGRESSIVE ROUTE CLEARING - Remove all existing route visualizations
@@ -531,7 +638,9 @@
         reorderRoute,
         removeRouteIndex,
         clearRoute,
-        recomputeRoute
+        recomputeRoute,
+        safeRecomputeRoute,
+        validateAndRepairRouteState
     };
 
 })(window);
