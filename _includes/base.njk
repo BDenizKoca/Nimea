@@ -197,11 +197,11 @@
             }
         });
     </script>
-    <script src="/js/search.js" defer></script>
+    <script src="{{ '/js/search.js' | url }}" defer></script>
         <script>
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/service-worker.js').catch(console.error);
+                    navigator.serviceWorker.register('{{ '/service-worker.js' | url }}').catch(console.error);
                 });
             }
         </script>
