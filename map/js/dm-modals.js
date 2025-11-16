@@ -731,7 +731,6 @@
 
         /**
          * Manual merge tool: Merges selected polygons
-         * User clicks polygons to select, then clicks "Merge Selected" button
          * Uses buffer to fill small gaps between polygons
          */
         mergeSelectedPolygons() {
@@ -739,100 +738,108 @@
                 this.bridge.showNotification('Turf.js not loaded', 'error');
                 return;
             }
-            
+
             const selected = this.bridge.selectedTerrainForMerge || [];
-            
-            if (selected.length < 2) {
-                this.bridge.showNotification('Click at least 2 polygons to select them, then click Merge', 'info');
+            const validationError = this.validateMergeSelection(selected);
+            if (validationError) {
+                this.bridge.showNotification(validationError.message, validationError.type);
                 return;
             }
-            
-            console.log(`Merging ${selected.length} selected polygons...`);
-            
-            // Check they're all the same terrain type
-            const firstType = selected[0].properties.kind;
-            const allSameType = selected.every(f => f.properties.kind === firstType);
-            
-            if (!allSameType) {
-                this.bridge.showNotification('All selected polygons must be the same terrain type', 'error');
-                return;
-            }
-            
-            // Check they're all polygons (not LineStrings/roads)
-            const allPolygons = selected.every(f => 
-                f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'
-            );
-            
-            if (!allPolygons) {
-                this.bridge.showNotification('Can only merge polygons, not roads/lines', 'error');
-                return;
-            }
-            
+
             try {
-                console.log('Merging polygons...');
-                console.log('Selected features:', selected);
-                
-                // Try direct union first (works for touching/overlapping polygons)
-                const featureCollection = turf.featureCollection(selected);
-                let merged;
-                
-                try {
-                    merged = turf.union(featureCollection);
-                    console.log('Direct union successful:', merged);
-                } catch (directError) {
-                    console.log('Direct union failed, trying with buffer to fill gaps...');
-                    // If direct union fails (polygons have gaps), use buffer method
-                    const bufferSize = DM_CONSTANTS.TERRAIN_MERGE_BUFFER;
-
-                    const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
-                    merged = turf.union(turf.featureCollection(buffered));
-
-                    // Try to buffer back (but don't fail if it makes polygon too small)
-                    try {
-                        const shrunk = turf.buffer(merged, -bufferSize, { units: 'degrees' });
-                        if (shrunk && shrunk.geometry && shrunk.geometry.coordinates.length > 0) {
-                            merged = shrunk;
-                            console.log('Buffered union successful');
-                        } else {
-                            console.log('Inward buffer too aggressive, keeping expanded union');
-                        }
-                    } catch (bufferError) {
-                        console.log('Inward buffer failed, keeping expanded union');
-                    }
-                }
-                
-                // Preserve properties
-                merged.properties = {
-                    kind: firstType,
-                    _internal_id: `terrain_${firstType}_merged_${Date.now()}`
-                };
-                
-                console.log('Final merged feature:', merged);
-                
-                // Remove old features
-                const selectedIds = selected.map(f => f.properties._internal_id);
-                this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
-                    f => !selectedIds.includes(f.properties._internal_id)
-                );
-                
-                // Add merged feature
-                this.bridge.state.terrain.features.push(merged);
-                console.log('New terrain feature count:', this.bridge.state.terrain.features.length);
-                
-                // Clear selection
-                this.bridge.selectedTerrainForMerge = [];
-                
-                // Re-render
-                this.bridge.terrainModule.renderTerrain();
-                this.bridge.markDirty('terrain');
-                
+                const merged = this.performMerge(selected);
+                this.applyMergedFeature(merged, selected);
                 this.bridge.showNotification(`Merged ${selected.length} polygons (gaps filled)`, 'success');
-                console.log('✅ Merge complete with buffering');
-                
             } catch (error) {
                 console.error('Merge failed:', error);
                 this.bridge.showNotification('Merge failed: ' + error.message, 'error');
             }
+        }
+
+        /**
+         * Validate terrain selection for merging
+         * @private
+         */
+        validateMergeSelection(selected) {
+            if (selected.length < 2) {
+                return { message: 'Click at least 2 polygons to select them, then click Merge', type: 'info' };
+            }
+
+            const firstType = selected[0].properties.kind;
+            if (!selected.every(f => f.properties.kind === firstType)) {
+                return { message: 'All selected polygons must be the same terrain type', type: 'error' };
+            }
+
+            const allPolygons = selected.every(f =>
+                f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'
+            );
+            if (!allPolygons) {
+                return { message: 'Can only merge polygons, not roads/lines', type: 'error' };
+            }
+
+            return null;
+        }
+
+        /**
+         * Perform the merge operation with fallback to buffer method
+         * @private
+         */
+        performMerge(selected) {
+            const firstType = selected[0].properties.kind;
+
+            try {
+                // Try direct union (for touching/overlapping polygons)
+                const merged = turf.union(turf.featureCollection(selected));
+                console.log('Direct union successful');
+                merged.properties = { kind: firstType, _internal_id: `terrain_${firstType}_merged_${Date.now()}` };
+                return merged;
+            } catch (directError) {
+                // Fallback: buffer method (fills gaps)
+                console.log('Direct union failed, using buffer method');
+                return this.mergeWithBuffer(selected, firstType);
+            }
+        }
+
+        /**
+         * Merge polygons using buffer method to fill gaps
+         * @private
+         */
+        mergeWithBuffer(selected, terrainType) {
+            const bufferSize = DM_CONSTANTS.TERRAIN_MERGE_BUFFER;
+            const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
+            let merged = turf.union(turf.featureCollection(buffered));
+
+            // Try to shrink back to original size
+            try {
+                const shrunk = turf.buffer(merged, -bufferSize, { units: 'degrees' });
+                if (shrunk && shrunk.geometry && shrunk.geometry.coordinates.length > 0) {
+                    merged = shrunk;
+                    console.log('Buffered union successful with shrink');
+                } else {
+                    console.log('Shrink too aggressive, keeping expanded union');
+                }
+            } catch (bufferError) {
+                console.log('Shrink failed, keeping expanded union');
+            }
+
+            merged.properties = { kind: terrainType, _internal_id: `terrain_${terrainType}_merged_${Date.now()}` };
+            return merged;
+        }
+
+        /**
+         * Apply merged feature to terrain state and re-render
+         * @private
+         */
+        applyMergedFeature(merged, selected) {
+            const selectedIds = selected.map(f => f.properties._internal_id);
+            this.bridge.state.terrain.features = this.bridge.state.terrain.features.filter(
+                f => !selectedIds.includes(f.properties._internal_id)
+            );
+            this.bridge.state.terrain.features.push(merged);
+            this.bridge.selectedTerrainForMerge = [];
+            this.bridge.terrainModule.renderTerrain();
+            this.bridge.markDirty('terrain');
+            console.log('✅ Merge complete');
         }
     }
 
