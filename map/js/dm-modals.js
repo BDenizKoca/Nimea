@@ -31,7 +31,7 @@
             ];
 
             elementIds.forEach(id => {
-                const element = this.el(id);
+                const element = document.getElementById(id);
                 if (element) {
                     this.elements[id] = element;
                 } else {
