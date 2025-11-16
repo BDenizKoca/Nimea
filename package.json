@@ -1,18 +1,35 @@
 {
   "name": "nimea-wiki",
-  "version": "1.0.0",
-  "description": "Interactive map and wiki for the fantasy realm of Nimea",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "Zero-backend wiki and interactive map for the fantasy realm of Nimea",
+  "type": "module",
   "scripts": {
-    "start": "eleventy --serve",
-    "build": "eleventy",
+    "dev": "vite",
+    "dev:eleventy": "eleventy --serve",
+    "build": "vite build && eleventy",
+    "build:js": "vite build",
+    "build:eleventy": "eleventy",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "type-check": "tsc --noEmit",
     "icons": "node scripts/generate-icons.js"
   },
-  "keywords": ["wiki", "fantasy", "map", "eleventy"],
+  "keywords": ["wiki", "fantasy", "map", "eleventy", "ttrpg"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@11ty/eleventy": "^3.1.2",
-    "sharp": "^0.33.3"
+    "@types/leaflet": "^1.9.8",
+    "@types/node": "^20.10.6",
+    "@vitest/ui": "^1.1.0",
+    "sharp": "^0.33.3",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10",
+    "vitest": "^1.1.0"
+  },
+  "dependencies": {
+    "nanostores": "^0.10.0",
+    "zod": "^3.22.4"
   }
 }
