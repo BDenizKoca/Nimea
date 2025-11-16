@@ -556,53 +556,77 @@
             const headers = lines[0].split(',').map(h => h.trim());
             const hasHeaders = ['name', 'x', 'y'].every(h => headers.includes(h));
             const dataLines = hasHeaders ? lines.slice(1) : lines;
-            
+
+            const result = this.importMarkerRows(dataLines, headers, hasHeaders);
+
+            if (result.imported > 0) {
+                const msg = this.t('dm.notifications.importSuccess').replace('{{count}}', result.imported);
+                this.bridge.showNotification(msg, 'success');
+                this.bridge.markDirty('markers');
+            }
+            if (result.errors.length > 0) {
+                console.warn('Import errors:', result.errors);
+                this.bridge.showNotification(this.t('dm.notifications.importError'), 'error');
+            }
+
+            document.getElementById('bulk-import-modal').classList.add('hidden');
+        }
+
+        /**
+         * Import marker rows from CSV data
+         * @private
+         */
+        importMarkerRows(dataLines, headers, hasHeaders) {
             let imported = 0;
             let errors = [];
 
             dataLines.forEach((line, index) => {
                 const values = line.split(',').map(v => v.trim());
                 try {
-                    const markerData = hasHeaders 
-                        ? this.parseCSVWithHeaders(headers, values) 
+                    const markerData = hasHeaders
+                        ? this.parseCSVWithHeaders(headers, values)
                         : this.parseCSVWithoutHeaders(values);
-                    
-                    if (!markerData.name || isNaN(markerData.x) || isNaN(markerData.y)) {
-                        errors.push(`Row ${index + 1}: Missing or invalid required fields (name, x, y)`);
-                        return;
-                    }
-                    if (this.bridge.state.markers.some(m => m.id === markerData.id)) {
-                        errors.push(`Row ${index + 1}: Marker ID "${markerData.id}" already exists`);
+
+                    const validationError = this.validateMarkerData(markerData, index);
+                    if (validationError) {
+                        errors.push(validationError);
                         return;
                     }
 
-                    this.bridge.state.markers.push(markerData);
-                    const marker = L.marker([markerData.y, markerData.x]).addTo(this.bridge.map);
-                    marker.on('click', () => this.bridge.openInfoSidebar(markerData));
-
-                    // Add touch support for bulk imported markers
-                    TouchEventManager.addTouchTap(marker, () => {
-                        this.bridge.openInfoSidebar(markerData);
-                    });
-                    
+                    this.createImportedMarker(markerData);
                     imported++;
-                    
+
                 } catch (error) {
                     errors.push(`Row ${index + 1}: ${error.message}`);
                 }
             });
 
-            if (imported > 0) {
-                const msg = this.t('dm.notifications.importSuccess').replace('{{count}}', imported);
-                this.bridge.showNotification(msg, 'success');
-                this.bridge.markDirty('markers');
-            }
-            if (errors.length > 0) {
-                console.warn('Import errors:', errors);
-                this.bridge.showNotification(this.t('dm.notifications.importError'), 'error');
-            }
+            return { imported, errors };
+        }
 
-            document.getElementById('bulk-import-modal').classList.add('hidden');
+        /**
+         * Validate marker data from CSV
+         * @private
+         */
+        validateMarkerData(markerData, rowIndex) {
+            if (!markerData.name || isNaN(markerData.x) || isNaN(markerData.y)) {
+                return `Row ${rowIndex + 1}: Missing or invalid required fields (name, x, y)`;
+            }
+            if (this.bridge.state.markers.some(m => m.id === markerData.id)) {
+                return `Row ${rowIndex + 1}: Marker ID "${markerData.id}" already exists`;
+            }
+            return null;
+        }
+
+        /**
+         * Create and add an imported marker to the map
+         * @private
+         */
+        createImportedMarker(markerData) {
+            this.bridge.state.markers.push(markerData);
+            const marker = L.marker([markerData.y, markerData.x]).addTo(this.bridge.map);
+            marker.on('click', () => this.bridge.openInfoSidebar(markerData));
+            TouchEventManager.addTouchTap(marker, () => this.bridge.openInfoSidebar(markerData));
         }
 
         /**
@@ -758,11 +782,11 @@
                 } catch (directError) {
                     console.log('Direct union failed, trying with buffer to fill gaps...');
                     // If direct union fails (polygons have gaps), use buffer method
-                    const bufferSize = 0.0005; // Smaller buffer: ~50m
-                    
+                    const bufferSize = DM_CONSTANTS.TERRAIN_MERGE_BUFFER;
+
                     const buffered = selected.map(f => turf.buffer(f, bufferSize, { units: 'degrees' }));
                     merged = turf.union(turf.featureCollection(buffered));
-                    
+
                     // Try to buffer back (but don't fail if it makes polygon too small)
                     try {
                         const shrunk = turf.buffer(merged, -bufferSize, { units: 'degrees' });
