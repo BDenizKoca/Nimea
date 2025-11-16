@@ -71,11 +71,53 @@ async function init(): Promise<void> {
     const config = await loader.loadConfig()
     console.log('✅ Config loaded')
 
-    // Initialize map (will be implemented next)
-    console.log('Map initialization will be implemented next...')
+    // Initialize Leaflet map
+    const { mapService } = await import('./services/map')
+    const map = mapService.initialize()
+
+    // Set up map bounds and background
+    if (config.bounds) {
+      mapService.setBounds(config.bounds.sw, config.bounds.ne)
+      mapService.fitBounds(config.bounds.sw, config.bounds.ne)
+    }
+
+    if (config.backgroundImage) {
+      mapService.addBackgroundImage(config.backgroundImage.url, config.backgroundImage.bounds)
+    }
+
+    // Initialize marker service
+    const { MarkersService } = await import('./services/markers')
+    const markersService = new MarkersService(map)
+
+    // Detect language from URL
+    const currentLang = window.location.pathname.startsWith('/en/') ? 'en' : 'tr'
+    markersService.setLanguage(currentLang)
+
+    // Check if we need to focus on a specific marker
+    const urlParams = new URLSearchParams(window.location.search)
+    const focusMarker = urlParams.get('focus')
+    if (focusMarker) {
+      // Wait for markers to render, then focus
+      eventBus.once('markers:rendered', () => {
+        markersService.focusMarker(focusMarker)
+      })
+    }
+
+    // Initialize terrain service
+    const { TerrainService } = await import('./services/terrain')
+    const terrainService = new TerrainService(map)
+
+    // Initialize DM mode if enabled
+    if ($isDmMode.get()) {
+      console.log('🎮 Initializing DM mode...')
+      // DM controls and modals will be lazy-loaded here
+      const { initDmMode } = await import('./services/dm')
+      initDmMode(map, markersService, terrainService)
+    }
 
     // Emit ready event
     eventBus.emit('ready')
+    console.log('🎉 Map ready!')
 
   } catch (error) {
     console.error('Fatal initialization error:', error)

@@ -836,7 +836,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1756822111861_0.6877759293281878"
       },
       "geometry": {
@@ -942,7 +942,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1756822174151_0.8669148550110404"
       },
       "geometry": {
@@ -1086,7 +1086,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1756822604086_0.912222162543055"
       },
       "geometry": {
@@ -1196,7 +1196,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1756822782420_0.08085085219454546"
       },
       "geometry": {
@@ -3164,7 +3164,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1758845011726_0.2930152385935898"
       },
       "geometry": {
@@ -3266,7 +3266,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1758845073445_0.6791296783602332"
       },
       "geometry": {
@@ -3396,7 +3396,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758845657572_0.25640821591206964"
       },
       "geometry": {
@@ -3670,7 +3670,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758845676374_0.8724497444348437"
       },
       "geometry": {
@@ -3744,7 +3744,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758845712244_0.4974704839429709"
       },
       "geometry": {
@@ -3894,7 +3894,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758845732295_0.061664782369854954"
       },
       "geometry": {
@@ -3944,7 +3944,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758845767805_0.9754826469188186"
       },
       "geometry": {
@@ -4114,7 +4114,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846111534_0.3295794992806593"
       },
       "geometry": {
@@ -4392,7 +4392,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846184917_0.8462555645985629"
       },
       "geometry": {
@@ -4502,7 +4502,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846193802_0.7332729358693526"
       },
       "geometry": {
@@ -4568,7 +4568,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846202489_0.8551077516669129"
       },
       "geometry": {
@@ -4634,7 +4634,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846224595_0.13352158826064198"
       },
       "geometry": {
@@ -4732,7 +4732,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846235625_0.5250543945869977"
       },
       "geometry": {
@@ -4790,7 +4790,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846257150_0.9957008783851279"
       },
       "geometry": {
@@ -4876,7 +4876,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846266405_0.6885637979907928"
       },
       "geometry": {
@@ -4926,7 +4926,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758846278176_0.5325060817149408"
       },
       "geometry": {
@@ -4996,7 +4996,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848547418_0.00421693776238008"
       },
       "geometry": {
@@ -5042,7 +5042,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848554753_0.5328427422767624"
       },
       "geometry": {
@@ -5100,7 +5100,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848566558_0.23082717620676096"
       },
       "geometry": {
@@ -5158,7 +5158,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848576099_0.9586910335702016"
       },
       "geometry": {
@@ -5220,7 +5220,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848598831_0.21194803352754188"
       },
       "geometry": {
@@ -5294,7 +5294,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848623504_0.7388347974244318"
       },
       "geometry": {
@@ -5348,7 +5348,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848636610_0.17063398695712673"
       },
       "geometry": {
@@ -5426,7 +5426,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848652552_0.9750255863507403"
       },
       "geometry": {
@@ -5520,7 +5520,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848675992_0.4933960048851409"
       },
       "geometry": {
@@ -5614,7 +5614,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848712024_0.030294120350713438"
       },
       "geometry": {
@@ -5776,7 +5776,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848734131_0.0564004741574311"
       },
       "geometry": {
@@ -5842,7 +5842,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848894949_0.6441328140590373"
       },
       "geometry": {
@@ -5904,7 +5904,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758848918481_0.16171771471932894"
       },
       "geometry": {
@@ -6934,7 +6934,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1758850084783_0.5351915558152337"
       },
       "geometry": {
@@ -7288,7 +7288,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1759103166119_0.45502394884770414"
       },
       "geometry": {
@@ -7362,7 +7362,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1759103235820_0.5430566493008352"
       },
       "geometry": {
@@ -7484,7 +7484,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1759103259586_0.6086553039616932"
       },
       "geometry": {
@@ -7554,7 +7554,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_1759103287903_0.6288150177262686"
       },
       "geometry": {
@@ -7640,7 +7640,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103588604_0.41059086105381026"
       },
       "geometry": {
@@ -7816,7 +7816,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103635206_0.19170772242906609"
       },
       "geometry": {
@@ -7938,7 +7938,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103653227_0.4240624804798988"
       },
       "geometry": {
@@ -8138,7 +8138,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103688990_0.1007435325739654"
       },
       "geometry": {
@@ -8600,7 +8600,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103805302_0.37312380616073526"
       },
       "geometry": {
@@ -8686,7 +8686,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759103819110_0.6539656082074207"
       },
       "geometry": {
@@ -9620,7 +9620,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104029663_0.39213712054708283"
       },
       "geometry": {
@@ -9730,7 +9730,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104042320_0.19812627678975858"
       },
       "geometry": {
@@ -9820,7 +9820,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104059720_0.04664175080668276"
       },
       "geometry": {
@@ -9914,7 +9914,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104075112_0.7664192903262168"
       },
       "geometry": {
@@ -10008,7 +10008,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104090147_0.6590821032828441"
       },
       "geometry": {
@@ -10106,7 +10106,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104110313_0.021492172522155295"
       },
       "geometry": {
@@ -11286,7 +11286,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104508482_0.9374203053121558"
       },
       "geometry": {
@@ -11452,7 +11452,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104545525_0.4834795847861857"
       },
       "geometry": {
@@ -11646,7 +11646,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104556949_0.3548742304098198"
       },
       "geometry": {
@@ -11716,7 +11716,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104574012_0.9078290208621238"
       },
       "geometry": {
@@ -11814,7 +11814,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104581067_0.020354833242564152"
       },
       "geometry": {
@@ -11864,7 +11864,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104598476_0.08066940026091374"
       },
       "geometry": {
@@ -11966,7 +11966,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104613315_0.09833646228044479"
       },
       "geometry": {
@@ -12016,7 +12016,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104636945_0.08865965680214372"
       },
       "geometry": {
@@ -12198,7 +12198,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104653948_0.5406314758441148"
       },
       "geometry": {
@@ -12296,7 +12296,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104670440_0.25992689950802217"
       },
       "geometry": {
@@ -12386,7 +12386,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104689757_0.5763442941959794"
       },
       "geometry": {
@@ -12500,7 +12500,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104699432_0.3261293780460808"
       },
       "geometry": {
@@ -12562,7 +12562,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104710190_0.5161916338024165"
       },
       "geometry": {
@@ -12644,7 +12644,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104723510_0.05336580935022328"
       },
       "geometry": {
@@ -12750,7 +12750,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104738515_0.2309257623600488"
       },
       "geometry": {
@@ -12848,7 +12848,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104751695_0.8682898175842718"
       },
       "geometry": {
@@ -12934,7 +12934,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104761930_0.47864826017221473"
       },
       "geometry": {
@@ -13024,7 +13024,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "open",
+        "kind": "medium",
         "_internal_id": "terrain_1759104871622_0.05588067001496355"
       },
       "geometry": {
@@ -13110,7 +13110,7 @@
     {
       "type": "Feature",
       "properties": {
-        "kind": "impassable",
+        "kind": "unpassable",
         "_internal_id": "terrain_unpassable_merged_1759539928723"
       },
       "geometry": {

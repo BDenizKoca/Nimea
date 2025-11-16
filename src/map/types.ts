@@ -49,16 +49,26 @@ export interface TerrainFeature {
   geometry: GeoJSON.Geometry
 }
 
+/**
+ * Terrain Types - CLEAN MODEL
+ *
+ * Only 4 types needed:
+ * - road: Fast travel roads
+ * - open: Normal terrain (was 'medium')
+ * - difficult: Rough terrain (mountains, swamps)
+ * - impassable: Cannot cross in current mode
+ *
+ * Logic:
+ * - Land mode: impassable = water/cliffs
+ * - Sea mode: impassable = land (flip logic)
+ *
+ * No need for separate water/sea types - just flip what "impassable" means.
+ */
 export type TerrainType =
-  | 'road'
-  | 'normal'
-  | 'forest'
-  | 'medium'
-  | 'difficult'
-  | 'water'
-  | 'sea'
-  | 'unpassable'
-  | 'blocked'
+  | 'road'        // Roads (fast land travel)
+  | 'open'        // Open terrain (normal speed)
+  | 'difficult'   // Rough terrain (slow travel)
+  | 'impassable'  // Cannot cross (water for land mode, land for sea mode)
 
 export interface TerrainCollection {
   type: 'FeatureCollection'
@@ -72,12 +82,24 @@ export interface RouteStop {
 
 export interface AppConfig {
   kmPerPixel: number
-  terrainCosts: Record<TerrainType, number>
-  waterTerrainKinds: TerrainType[]
+  terrainCosts: {
+    road: number
+    open: number
+    difficult: number
+    impassable: number
+  }
   profiles: {
     walking: TravelProfile
     wagon: TravelProfile
     horse: TravelProfile
+  }
+  bounds?: {
+    sw: [number, number]
+    ne: [number, number]
+  }
+  backgroundImage?: {
+    url: string
+    bounds: [[number, number], [number, number]]
   }
 }
 
@@ -104,8 +126,7 @@ export interface AppState {
     markers: boolean
     terrain: boolean
   }
-  travelMode: 'walking' | 'wagon' | 'horse'
-  enableSeaTravel: boolean
+  travelMode: 'land' | 'sea'
   travelProfile: 'walking' | 'wagon' | 'horse'
 }
 

@@ -1,5 +1,5 @@
 import { atom, computed } from 'nanostores'
-import type { Marker, TerrainCollection, RouteStop, AppConfig } from '../types'
+import type { Marker, TerrainCollection, RouteStop } from '../types'
 
 // Core reactive state stores
 export const $markers = atom<Marker[]>([])

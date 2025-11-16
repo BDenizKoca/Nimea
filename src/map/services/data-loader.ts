@@ -1,7 +1,7 @@
 import { validateMarkers } from '../schemas/marker'
 import { validateTerrainCollection } from '../schemas/terrain'
 import { $markers, $terrain } from '../stores'
-import type { Marker, TerrainCollection, AppConfig } from '../types'
+import type { Marker, AppConfig } from '../types'
 
 export class DataLoader {
   private basePath: string
@@ -141,16 +141,10 @@ export class DataLoader {
       kmPerPixel: 100 / 115,
       terrainCosts: {
         road: 0.7,
-        normal: 1.0,
-        forest: 1.2,
-        medium: 1.5,
+        open: 1.0,
         difficult: 2.0,
-        water: 0.25,
-        sea: 0.25,
-        unpassable: 50.0,
-        blocked: 50.0
+        impassable: 999
       },
-      waterTerrainKinds: ['sea', 'water', 'unpassable'],
       profiles: {
         walking: { label: 'Walking', landSpeed: 30, seaSpeed: 120 },
         wagon: { label: 'Wagon', landSpeed: 50, seaSpeed: 120 },
