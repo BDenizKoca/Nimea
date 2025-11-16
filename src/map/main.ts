@@ -107,6 +107,18 @@ async function init(): Promise<void> {
     const { TerrainService } = await import('./services/terrain')
     const terrainService = new TerrainService(map)
 
+    // Initialize routing service
+    const { RoutingService } = await import('./services/routing')
+    const routingService = new RoutingService(map)
+
+    // Setup route toggle button
+    const routeToggleBtn = document.querySelector('.route-toggle')
+    if (routeToggleBtn) {
+      routeToggleBtn.addEventListener('click', () => {
+        routingService.toggleRouteSidebar()
+      })
+    }
+
     // Initialize DM mode if enabled
     if ($isDmMode.get()) {
       console.log('🎮 Initializing DM mode...')
