@@ -267,47 +267,17 @@ Thornhold,2000,1500,fortress,Empire,Mountain fortress,true"></textarea>
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- External Dependencies (CDN) -->
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
-    <!-- Turf.js for DM terrain merge operations -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
-    <!-- Netlify Identity for DM authentication -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+
+    <!-- Legacy Scripts (TODO: migrate to ES6) -->
     <script src="/map/config.js"></script>
     <script src="/map/git-client.js"></script>
-    <script src="/map/js/leaflet.tappable.js"></script>
-    <script src="/map/js/utils/logger.js"></script>
-    <script src="/map/js/utils/event-emitter.js"></script>
-    <script src="/map/js/utils/touch-event-manager.js"></script>
-    <script src="/map/js/terrain-styles.js"></script>
-    <script src="/map/js/dm-constants.js"></script>
-    <!-- Routing Module Components (load before main routing.js) -->
-    <script src="/map/js/routing/validation.js"></script>
-    <script src="/map/js/routing/terrain-utils.js"></script>
-    <script src="/map/js/routing/pathfinding.js"></script>
-    <script src="/map/js/routing/graph-builder.js"></script>
-    <script src="/map/js/routing/path-naturalizer.js"></script>
-    <script src="/map/js/routing/visualizer.js"></script>
-    <!-- New Modular Routing Components -->
-    <script src="/map/js/routing/route-core.js"></script>
-    <script src="/map/js/routing/waypoint-manager.js"></script>
-    <script src="/map/js/routing/route-ui.js"></script>
-    <script src="/map/js/routing/route-drag-drop.js"></script>
-    <!-- Load base TR route-share implementation first (shared logic) -->
-    <script src="/map/js/routing/route-share.js"></script>
-    <script src="/map/js/routing.js"></script>
-    <!-- Internationalization -->
-    <script src="js/i18n.js"></script>
-    <!-- DM Module Components (Shared - language-agnostic with i18n) -->
-    <script src="js/dm-controls.js"></script>
-    <script src="js/dm-modals.js"></script>
-    <script src="js/dm.js"></script>
-    <!-- End DM Module Components -->
-    <script src="/map/js/ui.js"></script>
-    <script src="/map/js/direct-touch.js"></script>
-    <script src="/map/js/markers.js"></script>
-    <script src="/map/js/terrain.js"></script>
-    <script src="/map/map.js"></script>
+
+    <!-- New ES6 Module Bundle (Vite build) -->
+    <script type="module" src="/dist/assets/js/map.js"></script>
         <script>
             // Ensure map and sidebars start below header: set CSS var dynamically
             (function(){
