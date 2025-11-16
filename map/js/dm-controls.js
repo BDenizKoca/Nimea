@@ -208,25 +208,22 @@
          */
         enableTerrainSelection() {
             const self = this;
-            
+
             // Store reference to terrain layers for selection
             if (!this.bridge.terrainLayerMap) {
                 this.bridge.terrainLayerMap = new Map(); // _internal_id -> layer
             }
-            
-            // Hook into terrain rendering to track layers
-            const originalRenderTerrain = this.bridge.terrainModule.renderTerrain;
-            this.bridge.terrainModule.renderTerrain = function() {
-                originalRenderTerrain.call(this);
-                
-                // After rendering, store layer references
+
+            // Listen for terrain render events instead of monkey-patching
+            this.bridge.events.on('terrainRendered', ({ terrainLayer }) => {
                 self.bridge.terrainLayerMap.clear();
-                if (self.bridge.terrainModule.terrainLayer) {
-                    self.bridge.terrainModule.terrainLayer.eachLayer(function(layer) {
+
+                if (terrainLayer) {
+                    terrainLayer.eachLayer(function(layer) {
                         const feature = layer.feature;
                         if (feature && feature.properties._internal_id) {
                             self.bridge.terrainLayerMap.set(feature.properties._internal_id, layer);
-                            
+
                             // Add click handler to each layer
                             layer.off('click'); // Remove old handlers
                             layer.on('click', function(e) {
@@ -238,10 +235,10 @@
                         }
                     });
                 }
-            };
-            
-            // Initial render
-            if (this.bridge.terrainModule.terrainLayer) {
+            });
+
+            // Initial setup if terrain already rendered
+            if (this.bridge.terrainModule && this.bridge.terrainModule.terrainLayer) {
                 this.bridge.terrainModule.renderTerrain();
             }
         }

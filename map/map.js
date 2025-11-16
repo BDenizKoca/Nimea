@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.__nimea = {
         config,
         state,
+        events: new EventEmitter(), // Event system for decoupled module communication
         // map instance, modules, and functions will be attached here
     };
 
