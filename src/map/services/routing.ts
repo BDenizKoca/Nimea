@@ -18,6 +18,9 @@ export class RoutingService {
   private travelProfile: 'walking' | 'wagon' | 'horse' = 'walking'
   private currentPolyline: any = null
   private currentGraph: RoutingGraph | null = null
+  private unsubscribeRoute?: () => void
+  private unsubscribeTerrain?: () => void
+  private eventHandlers: Array<{ event: string; handler: (...args: any[]) => void }> = []
 
   // Routing configuration
   private readonly TERRAIN_GRID_SIZE = 20 // High-density grid (20px)
@@ -35,12 +38,12 @@ export class RoutingService {
     this.map = map
 
     // Subscribe to route changes
-    $route.subscribe((route) => {
+    this.unsubscribeRoute = $route.subscribe((route) => {
       this.updateRouteDisplay([...route]) // Create mutable copy
     })
 
     // Rebuild graph when terrain changes
-    $terrain.subscribe(() => {
+    this.unsubscribeTerrain = $terrain.subscribe(() => {
       this.currentGraph = null // Invalidate graph
       this.recalculateRoute()
     })
@@ -49,6 +52,32 @@ export class RoutingService {
     this.setupEventListeners()
 
     console.log('✅ Routing service initialized with A* pathfinding')
+  }
+
+  /**
+   * Cleanup all event listeners and subscriptions
+   */
+  destroy(): void {
+    // Unsubscribe from stores
+    if (this.unsubscribeRoute) {
+      this.unsubscribeRoute()
+    }
+    if (this.unsubscribeTerrain) {
+      this.unsubscribeTerrain()
+    }
+
+    // Remove all event bus listeners
+    this.eventHandlers.forEach(({ event, handler }) => {
+      eventBus.off(event, handler)
+    })
+    this.eventHandlers = []
+
+    // Clear route from map
+    this.clearRouteFromMap()
+
+    this.currentGraph = null
+
+    console.log('✅ Routing service destroyed')
   }
 
   /**

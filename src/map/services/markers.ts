@@ -15,13 +15,14 @@ export class MarkersService {
   private markersLayer: L.LayerGroup | null = null
   private allMarkers: Array<LeafletMarker & { markerData?: Marker }> = []
   private currentLanguage: string = 'tr'
+  private unsubscribeMarkers?: () => void
 
   constructor(map: LeafletMap) {
     this.map = map
     this.markersLayer = L.layerGroup().addTo(map)
 
     // Subscribe to marker changes
-    $markers.subscribe((markers) => {
+    this.unsubscribeMarkers = $markers.subscribe((markers) => {
       this.renderMarkers([...markers]) // Create mutable copy
     })
 
@@ -29,6 +30,33 @@ export class MarkersService {
     this.setupMarkerScaling()
 
     console.log('✅ Markers service initialized')
+  }
+
+  /**
+   * Cleanup all event listeners and subscriptions
+   */
+  destroy(): void {
+    // Unsubscribe from stores
+    if (this.unsubscribeMarkers) {
+      this.unsubscribeMarkers()
+    }
+
+    // Remove map event listeners
+    if (this.map) {
+      this.map.off('zoom')
+      this.map.off('zoomend')
+    }
+
+    // Remove marker layer
+    if (this.markersLayer && this.map) {
+      this.map.removeLayer(this.markersLayer)
+    }
+
+    this.allMarkers = []
+    this.map = null
+    this.markersLayer = null
+
+    console.log('✅ Markers service destroyed')
   }
 
   /**

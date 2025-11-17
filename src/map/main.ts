@@ -7,6 +7,7 @@ import { $isDmMode, $markers, $terrain } from './stores'
 import { DataLoader } from './services/data-loader'
 import { eventBus } from './utils/events'
 import './services/i18n' // Initialize i18n system (imported for side effects)
+import { loadingManager } from './services/loading'
 
 console.log('🗺️  Nimea Map v2.0 - Modernized Stack')
 
@@ -46,6 +47,9 @@ function initDmMode(): void {
 // Main initialization
 async function init(): Promise<void> {
   try {
+    // Show loading overlay
+    loadingManager.show('Loading map data...')
+
     console.log('Initializing...')
 
     // Set DM mode
@@ -132,8 +136,15 @@ async function init(): Promise<void> {
     eventBus.emit('ready')
     console.log('🎉 Map ready!')
 
+    // Hide loading overlay
+    loadingManager.hide()
+
   } catch (error) {
     console.error('Fatal initialization error:', error)
+
+    // Hide loading overlay
+    loadingManager.hide()
+
     eventBus.emit('error', {
       title: 'Initialization failed',
       message: error instanceof Error ? error.message : 'Unknown error'
