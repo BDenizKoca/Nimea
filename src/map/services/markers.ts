@@ -236,12 +236,22 @@ export class MarkersService {
 
       // Add click handler for desktop
       marker.on('click', () => {
-        eventBus.emit('marker:click', markerData)
+        // In DM mode, emit special event for editing
+        if (isDm) {
+          eventBus.emit('marker:click:dm', markerData)
+        } else {
+          eventBus.emit('marker:click', markerData)
+        }
       })
 
       // Add touch tap handler for mobile (prevents false taps during panning)
       addTouchTap(marker, () => {
-        eventBus.emit('marker:click', markerData)
+        // In DM mode, emit special event for editing
+        if (isDm) {
+          eventBus.emit('marker:click:dm', markerData)
+        } else {
+          eventBus.emit('marker:click', markerData)
+        }
       })
     })
 

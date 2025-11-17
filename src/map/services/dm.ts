@@ -141,6 +141,11 @@ function setupMapEventListeners(
       eventBus.emit('terrain:deleted', { layer })
     }
   })
+
+  // Handle marker click in DM mode for editing
+  eventBus.on('marker:click:dm', (markerData) => {
+    dmModals.showMarkerEditModal(markerData)
+  })
 }
 
 /**
@@ -157,12 +162,9 @@ function setupDmEventHandlers(): void {
     await publishAll()
   })
 
-  // Optimize terrain
+  // Optimize/merge terrain
   eventBus.on('dm:optimize-terrain', () => {
-    eventBus.emit('notification', {
-      message: 'Terrain optimization coming soon!',
-      type: 'info'
-    })
+    mergeSelectedTerrain()
   })
 
   // Delete node
@@ -249,6 +251,79 @@ async function publishAll(): Promise<void> {
     console.error('Publish failed:', error)
     eventBus.emit('notification', {
       message: `Publish failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      type: 'error'
+    })
+  }
+}
+
+/**
+ * Merge selected terrain polygons into one
+ * Uses Turf.js union to combine overlapping polygons
+ */
+function mergeSelectedTerrain(): void {
+  // Check if Turf.js is available
+  if (!(window as any).turf) {
+    eventBus.emit('notification', {
+      message: 'Turf.js library not loaded - cannot merge terrain',
+      type: 'error'
+    })
+    return
+  }
+
+  const turf = (window as any).turf
+  const terrain = $terrain.get()
+
+  // Find selected features (features with selected=true in properties)
+  const selectedFeatures = terrain.features.filter((f: any) => f.properties?.selected === true)
+
+  if (selectedFeatures.length < 2) {
+    eventBus.emit('notification', {
+      message: 'Please select at least 2 terrain polygons to merge',
+      type: 'info'
+    })
+    return
+  }
+
+  try {
+    // Merge all selected polygons using Turf.js union
+    let merged = selectedFeatures[0]
+    for (let i = 1; i < selectedFeatures.length; i++) {
+      merged = turf.union(merged, selectedFeatures[i])
+    }
+
+    // Use the terrain type of the first selected feature
+    const terrainType = selectedFeatures[0].properties.kind
+
+    // Create new merged feature
+    const mergedFeature = {
+      type: 'Feature' as const,
+      properties: {
+        kind: terrainType,
+        selected: false
+      },
+      geometry: merged.geometry
+    }
+
+    // Remove selected features and add merged one
+    const newFeatures = terrain.features.filter((f: any) => f.properties?.selected !== true)
+    newFeatures.push(mergedFeature as any) // Cast to any since Turf types may not match exactly
+
+    // Update terrain store
+    $terrain.set({
+      type: 'FeatureCollection',
+      features: newFeatures
+    })
+
+    eventBus.emit('notification', {
+      message: `Merged ${selectedFeatures.length} terrain polygons`,
+      type: 'success'
+    })
+
+    eventBus.emit('dirty')
+  } catch (error) {
+    console.error('Terrain merge failed:', error)
+    eventBus.emit('notification', {
+      message: `Merge failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       type: 'error'
     })
   }

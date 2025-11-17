@@ -273,6 +273,94 @@ export class DmModals {
   }
 
   /**
+   * Show marker edit modal with existing marker data
+   */
+  showMarkerEditModal(markerData: Marker): void {
+    const modal = this.el('marker-creation-modal')
+    const form = this.el('marker-form') as HTMLFormElement
+    const latInput = this.el('marker-lat') as HTMLInputElement
+    const lngInput = this.el('marker-lng') as HTMLInputElement
+    const coordsInput = this.el('marker-coordinates') as HTMLInputElement
+
+    if (!modal || !form) return
+
+    // Set edit mode
+    form.dataset.editMode = 'true'
+    form.dataset.editingId = markerData.id
+
+    // Populate form with existing data
+    const idInput = this.el('marker-id') as HTMLInputElement
+    const nameTrInput = this.el('marker-name-tr') as HTMLInputElement
+    const nameEnInput = this.el('marker-name-en') as HTMLInputElement
+    const typeInput = this.el('marker-type') as HTMLSelectElement
+    const factionTrInput = this.el('marker-faction-tr') as HTMLInputElement
+    const factionEnInput = this.el('marker-faction-en') as HTMLInputElement
+    const summaryTrInput = this.el('marker-summary-tr') as HTMLTextAreaElement
+    const summaryEnInput = this.el('marker-summary-en') as HTMLTextAreaElement
+    const iconInput = this.el('marker-icon') as HTMLInputElement
+    const iconUrlInput = this.el('marker-icon-url') as HTMLInputElement
+    const wikiSlugInput = this.el('marker-wiki-slug') as HTMLInputElement
+    const publicCheckbox = this.el('marker-public') as HTMLInputElement
+    const isPortCheckbox = this.el('marker-is-port') as HTMLInputElement
+
+    // Basic fields
+    if (idInput) idInput.value = markerData.id
+    if (typeInput) typeInput.value = markerData.type || 'other'
+    if (iconInput) iconInput.value = markerData.customIcon || ''
+    if (iconUrlInput) iconUrlInput.value = markerData.iconUrl || ''
+    if (wikiSlugInput) wikiSlugInput.value = markerData.wikiSlug || ''
+    if (publicCheckbox) publicCheckbox.checked = markerData.public !== false
+    if (isPortCheckbox) isPortCheckbox.checked = markerData.isPort === true
+
+    // i18n fields
+    if (markerData.i18n) {
+      if (nameTrInput) nameTrInput.value = markerData.i18n.tr.name || markerData.name
+      if (nameEnInput) nameEnInput.value = markerData.i18n.en.name || markerData.name
+      if (factionTrInput) factionTrInput.value = markerData.i18n.tr.faction || ''
+      if (factionEnInput) factionEnInput.value = markerData.i18n.en.faction || ''
+      if (summaryTrInput) summaryTrInput.value = markerData.i18n.tr.summary || ''
+      if (summaryEnInput) summaryEnInput.value = markerData.i18n.en.summary || ''
+    } else {
+      // Fallback for old markers without i18n
+      if (nameTrInput) nameTrInput.value = markerData.name
+      if (nameEnInput) nameEnInput.value = markerData.name
+      if (factionTrInput) factionTrInput.value = markerData.faction || ''
+      if (factionEnInput) factionEnInput.value = markerData.faction || ''
+      if (summaryTrInput) summaryTrInput.value = markerData.summary || ''
+      if (summaryEnInput) summaryEnInput.value = markerData.summary || ''
+    }
+
+    // Coordinates
+    if (latInput) latInput.value = markerData.y.toString()
+    if (lngInput) lngInput.value = markerData.x.toString()
+    if (coordsInput) coordsInput.value = `${markerData.y.toFixed(2)}, ${markerData.x.toFixed(2)}`
+
+    // Images
+    const imagesListEl = this.el('marker-images-list')
+    if (imagesListEl && markerData.images) {
+      imagesListEl.innerHTML = markerData.images
+        .map(
+          (url, index) => `
+        <div class="image-item">
+          <input type="text" value="${url}" readonly />
+          <button type="button" class="remove-image-btn" data-index="${index}">Remove</button>
+        </div>
+      `
+        )
+        .join('')
+
+      // Add remove handlers
+      imagesListEl.querySelectorAll('.remove-image-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          btn.closest('.image-item')?.remove()
+        })
+      })
+    }
+
+    modal.classList.remove('hidden')
+  }
+
+  /**
    * Save marker from form using DMFormHandler (with i18n fix)
    */
   private saveMarkerFromForm(): void {
