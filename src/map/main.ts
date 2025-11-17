@@ -135,10 +135,25 @@ async function init(): Promise<void> {
 
     if (!result.success) {
       console.error('Data loading errors:', result.errors)
-      // Show user-friendly error
-      eventBus.emit('error', {
-        title: 'Failed to load map data',
-        message: result.errors.join(', ')
+
+      // Check for critical errors (Markers or Config)
+      const hasCriticalErrors = result.errors.some(e =>
+        e.includes('Markers') || e.includes('markers.json')
+      )
+
+      if (hasCriticalErrors) {
+        loadingManager.hide()
+        eventBus.emit('error', {
+          title: 'Critical data missing',
+          message: 'Cannot initialize map without markers. Please refresh or contact support.'
+        })
+        throw new Error('Critical data loading failed: ' + result.errors.join(', '))
+      }
+
+      // Non-critical errors (terrain) - show warning but continue
+      eventBus.emit('notification', {
+        message: `Some features unavailable: ${result.errors.join(', ')}`,
+        type: 'warning'
       })
     } else {
       console.log('✅ Data loaded successfully')

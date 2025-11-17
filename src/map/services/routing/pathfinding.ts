@@ -60,6 +60,11 @@ export function findShortestPathAStar(
       console.error(
         `  Start: ${startNodeId}, End: ${endNodeId}, Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`
       )
+      // Clean up memory before returning
+      openSet.clear()
+      cameFrom.clear()
+      gScore.clear()
+      fScore.clear()
       return null
     }
 
@@ -73,6 +78,11 @@ export function findShortestPathAStar(
         console.error(
           `  Start: ${startNodeId}, End: ${endNodeId}, Graph: ${graph.nodes.size} nodes, ${graph.edges.length} edges`
         )
+        // Clean up memory before returning
+        openSet.clear()
+        cameFrom.clear()
+        gScore.clear()
+        fScore.clear()
         return null
       }
     }
