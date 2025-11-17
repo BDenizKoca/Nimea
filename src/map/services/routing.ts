@@ -6,6 +6,7 @@
 import type { Map as LeafletMap } from 'leaflet'
 import { $route, $terrain, addRouteStop, removeRouteStop, clearRoute } from '../stores'
 import { eventBus } from '../utils/events'
+import { debounce } from '../utils/debounce'
 import { MAP_CONFIG } from '../constants'
 import type { Marker, RouteStop } from '../types'
 import type { RoutingGraph, TerrainCosts } from './routing/types'
@@ -37,21 +38,31 @@ export class RoutingService {
   constructor(map: LeafletMap) {
     this.map = map
 
-    // Subscribe to route changes
-    this.unsubscribeRoute = $route.subscribe((route) => {
-      this.updateRouteDisplay([...route]) // Create mutable copy
-    })
-
-    // Rebuild graph when terrain changes
-    this.unsubscribeTerrain = $terrain.subscribe(() => {
+    // Debounced terrain rebuild - prevents performance death spiral during drawing
+    const debouncedTerrainRebuild = debounce(() => {
       this.currentGraph = null // Invalidate graph
       this.recalculateRoute()
+    }, 500) // Wait 500ms after user stops drawing
+
+    // Debounced route recalculation - prevents rapid recalculations on quick clicks
+    const debouncedRouteUpdate = debounce((route: RouteStop[]) => {
+      this.updateRouteDisplay([...route]) // Create mutable copy
+    }, 300) // Wait 300ms after last route change
+
+    // Subscribe to route changes
+    this.unsubscribeRoute = $route.subscribe((route) => {
+      debouncedRouteUpdate(route as RouteStop[])
+    })
+
+    // Rebuild graph when terrain changes (debounced to prevent excessive rebuilds)
+    this.unsubscribeTerrain = $terrain.subscribe(() => {
+      debouncedTerrainRebuild()
     })
 
     // Setup event listeners
     this.setupEventListeners()
 
-    console.log('✅ Routing service initialized with A* pathfinding')
+    console.log('✅ Routing service initialized with A* pathfinding (debounced)')
   }
 
   /**
@@ -180,6 +191,9 @@ export class RoutingService {
    * Calculate and display route using A* pathfinding
    */
   private calculateAndDisplayRoute(route: RouteStop[]): void {
+    // Show operation-specific loading state
+    this.updateRouteSummaryLoading('Calculating route...')
+
     // Get routing graph
     const graph = this.getRoutingGraph()
 
@@ -191,6 +205,9 @@ export class RoutingService {
     for (let i = 0; i < route.length - 1; i++) {
       const from = route[i].marker
       const to = route[i + 1].marker
+
+      // Update loading state for each segment
+      this.updateRouteSummaryLoading(`Finding path: ${from.name} → ${to.name}...`)
 
       // Find path between consecutive markers
       const startNodeId = `marker_${from.id}`
@@ -269,6 +286,20 @@ export class RoutingService {
     const profile = MAP_CONFIG.travelProfiles[this.travelProfile]
     const speed = this.travelMode === 'sea' ? profile.seaSpeed : profile.landSpeed
     return distance / speed
+  }
+
+  /**
+   * Update route summary with loading state
+   */
+  private updateRouteSummaryLoading(message: string): void {
+    const summaryEl = document.getElementById('route-summary')
+    if (!summaryEl) return
+
+    summaryEl.innerHTML = `
+      <div class="route-stats route-loading">
+        <p><strong>⏳ ${message}</strong></p>
+      </div>
+    `
   }
 
   /**

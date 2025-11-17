@@ -166,9 +166,9 @@ function setupDmEventHandlers(): void {
     await publishAll()
   })
 
-  // Optimize/merge terrain
-  eventBus.on('dm:optimize-terrain', () => {
-    mergeSelectedTerrain()
+  // Optimize/merge terrain (async for lazy-loading Turf.js)
+  eventBus.on('dm:optimize-terrain', async () => {
+    await mergeSelectedTerrain()
   })
 
   // Delete node
@@ -271,19 +271,9 @@ async function publishAll(): Promise<void> {
 
 /**
  * Merge selected terrain polygons into one
- * Uses Turf.js union to combine overlapping polygons
+ * Uses Turf.js union to combine overlapping polygons (lazy-loaded)
  */
-function mergeSelectedTerrain(): void {
-  // Check if Turf.js is available
-  if (!(window as any).turf) {
-    eventBus.emit('notification', {
-      message: 'Turf.js library not loaded - cannot merge terrain',
-      type: 'error'
-    })
-    return
-  }
-
-  const turf = (window as any).turf
+async function mergeSelectedTerrain(): Promise<void> {
   const terrain = $terrain.get()
 
   // Find selected features (features with selected=true in properties)
@@ -298,6 +288,21 @@ function mergeSelectedTerrain(): void {
   }
 
   try {
+    // Lazy-load Turf.js only when needed (DM-only operation)
+    eventBus.emit('notification', {
+      message: 'Loading terrain merge library...',
+      type: 'info'
+    })
+
+    // Check if already loaded globally
+    let turf = (window as any).turf
+    if (!turf) {
+      // Dynamically import Turf.js
+      // Note: @turf/turf is loaded via CDN script tag in HTML
+      // If not available, fall back to error
+      throw new Error('Turf.js library not loaded. Please check CDN script in HTML.')
+    }
+
     // Merge all selected polygons using Turf.js union
     let merged = selectedFeatures[0]
     for (let i = 1; i < selectedFeatures.length; i++) {

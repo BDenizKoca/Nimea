@@ -143,12 +143,23 @@ class RemoveTerrainCommand implements Command {
 }
 
 /**
- * Undo/Redo Manager
+ * Undo/Redo Manager with sessionStorage persistence
  */
 class UndoRedoManager {
   private undoStack: Command[] = []
   private redoStack: Command[] = []
   private maxStackSize = 50
+  private readonly STORAGE_KEY = 'nimea.undo-history'
+
+  constructor() {
+    // Restore history from sessionStorage on initialization
+    this.restoreFromStorage()
+
+    // Persist history when page unloads
+    window.addEventListener('beforeunload', () => {
+      this.saveToStorage()
+    })
+  }
 
   /**
    * Execute a command and add it to undo stack
@@ -166,6 +177,7 @@ class UndoRedoManager {
     }
 
     this.emitStateChange()
+    this.saveToStorage() // Persist after each operation
   }
 
   /**
@@ -177,6 +189,7 @@ class UndoRedoManager {
       command.undo()
       this.redoStack.push(command)
       this.emitStateChange()
+      this.saveToStorage() // Persist after undo
       eventBus.emit('notification', {
         message: `Undone: ${command.description}`,
         type: 'info'
@@ -193,6 +206,7 @@ class UndoRedoManager {
       command.execute()
       this.undoStack.push(command)
       this.emitStateChange()
+      this.saveToStorage() // Persist after redo
       eventBus.emit('notification', {
         message: `Redone: ${command.description}`,
         type: 'info'
@@ -221,6 +235,54 @@ class UndoRedoManager {
     this.undoStack = []
     this.redoStack = []
     this.emitStateChange()
+    this.saveToStorage()
+  }
+
+  /**
+   * Save history to sessionStorage
+   * Only saves description metadata, not actual command objects
+   */
+  private saveToStorage(): void {
+    try {
+      const history = {
+        undoDescriptions: this.undoStack.map((cmd) => cmd.description),
+        redoDescriptions: this.redoStack.map((cmd) => cmd.description),
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(history))
+    } catch (e) {
+      console.warn('Could not save undo history to sessionStorage:', e)
+    }
+  }
+
+  /**
+   * Restore history metadata from sessionStorage
+   * Note: Commands themselves cannot be restored (methods lost in serialization)
+   * This just shows what operations were performed before refresh
+   */
+  private restoreFromStorage(): void {
+    try {
+      const stored = sessionStorage.getItem(this.STORAGE_KEY)
+      if (!stored) return
+
+      const history = JSON.parse(stored)
+      const age = Date.now() - history.timestamp
+
+      // Only restore if less than 1 hour old
+      if (age < 3600000) {
+        console.log('Undo history found (descriptions only):', {
+          undoCount: history.undoDescriptions?.length || 0,
+          redoCount: history.redoDescriptions?.length || 0
+        })
+        // Note: Actual command restoration would require recreating Command objects
+        // from stored data, which is complex. For now, we just log what was there.
+      } else {
+        // Clear stale history
+        sessionStorage.removeItem(this.STORAGE_KEY)
+      }
+    } catch (e) {
+      console.warn('Could not restore undo history from sessionStorage:', e)
+    }
   }
 
   /**

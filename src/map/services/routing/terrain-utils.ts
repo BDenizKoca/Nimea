@@ -6,6 +6,17 @@ import { $terrain } from '../../stores'
 // Water terrain kinds that should be treated as impassable (unless sea travel mode)
 const WATER_KINDS = new Set(['impassable'])
 
+// Cache for terrain cost calculations (cleared when terrain changes)
+let terrainCostCache = new Map<string, number>()
+let terrainVersion = 0
+
+// Subscribe to terrain changes to invalidate cache
+$terrain.subscribe(() => {
+  terrainCostCache.clear()
+  terrainVersion++
+  console.log('Terrain cost cache cleared (v' + terrainVersion + ')')
+})
+
 /**
  * Check if a point is inside a polygon using ray casting algorithm
  */
@@ -117,7 +128,7 @@ function lineIntersectsGeometry(
 }
 
 /**
- * Get terrain cost at a specific point
+ * Get terrain cost at a specific point (with caching)
  * Checks terrain features to determine movement cost
  */
 export function getTerrainCostAtPoint(
@@ -125,9 +136,18 @@ export function getTerrainCostAtPoint(
   y: number,
   terrainCosts: TerrainCosts
 ): number {
+  // Check cache first (significant performance improvement for graph building)
+  const cacheKey = `point:${x},${y}`
+  const cached = terrainCostCache.get(cacheKey)
+  if (cached !== undefined) {
+    return cached
+  }
+
   const terrain = $terrain.get()
   if (!terrain || !terrain.features) {
-    return terrainCosts.open || 1.0
+    const defaultCost = terrainCosts.open || 1.0
+    terrainCostCache.set(cacheKey, defaultCost)
+    return defaultCost
   }
 
   let cost = terrainCosts.open || 1.0
@@ -144,17 +164,23 @@ export function getTerrainCostAtPoint(
 
     // Impassable terrain
     if (kind === 'impassable') {
-      return terrainCosts.impassable || 50
+      const impassableCost = terrainCosts.impassable || 50
+      terrainCostCache.set(cacheKey, impassableCost)
+      return impassableCost
     }
 
     // Difficult terrain
     if (kind === 'difficult') {
-      return terrainCosts.difficult || 2.0
+      const difficultCost = terrainCosts.difficult || 2.0
+      terrainCostCache.set(cacheKey, difficultCost)
+      return difficultCost
     }
 
     // Road (best terrain)
     if (kind === 'road') {
-      return terrainCosts.road || 0.7
+      const roadCost = terrainCosts.road || 0.7
+      terrainCostCache.set(cacheKey, roadCost)
+      return roadCost
     }
 
     // Open/normal terrain
@@ -163,11 +189,12 @@ export function getTerrainCostAtPoint(
     }
   }
 
+  terrainCostCache.set(cacheKey, cost)
   return cost
 }
 
 /**
- * Calculate terrain cost between two points
+ * Calculate terrain cost between two points (with caching)
  * Used for bridge connections between graph layers
  */
 export function getTerrainCostBetweenPoints(
@@ -175,9 +202,18 @@ export function getTerrainCostBetweenPoints(
   to: { x: number; y: number },
   terrainCosts: TerrainCosts
 ): number {
+  // Check cache first
+  const cacheKey = `line:${from.x},${from.y}:${to.x},${to.y}`
+  const cached = terrainCostCache.get(cacheKey)
+  if (cached !== undefined) {
+    return cached
+  }
+
   const terrain = $terrain.get()
   if (!terrain || !terrain.features) {
-    return terrainCosts.open || 1.0
+    const defaultCost = terrainCosts.open || 1.0
+    terrainCostCache.set(cacheKey, defaultCost)
+    return defaultCost
   }
 
   let cost = terrainCosts.open || 1.0
@@ -194,17 +230,23 @@ export function getTerrainCostBetweenPoints(
 
     // Impassable terrain
     if (kind === 'impassable') {
-      return terrainCosts.impassable || 50
+      const impassableCost = terrainCosts.impassable || 50
+      terrainCostCache.set(cacheKey, impassableCost)
+      return impassableCost
     }
 
     // Difficult terrain
     if (kind === 'difficult') {
-      return terrainCosts.difficult || 2.0
+      const difficultCost = terrainCosts.difficult || 2.0
+      terrainCostCache.set(cacheKey, difficultCost)
+      return difficultCost
     }
 
     // Road (best terrain)
     if (kind === 'road') {
-      return terrainCosts.road || 0.7
+      const roadCost = terrainCosts.road || 0.7
+      terrainCostCache.set(cacheKey, roadCost)
+      return roadCost
     }
 
     // Open/normal terrain
@@ -213,6 +255,7 @@ export function getTerrainCostBetweenPoints(
     }
   }
 
+  terrainCostCache.set(cacheKey, cost)
   return cost
 }
 
