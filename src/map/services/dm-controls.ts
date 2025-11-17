@@ -12,9 +12,27 @@ export class DmControls {
   private map: LeafletMap
   private currentTerrainMode: string | null = null
   private publishControl: L.Control | null = null
+  private controls: L.Control[] = []
 
   constructor(map: LeafletMap) {
     this.map = map
+  }
+
+  /**
+   * Remove all DM controls from the map and cleanup subscriptions
+   * Call this when DM mode is disabled or app is destroyed
+   */
+  destroy(): void {
+    this.controls.forEach(control => {
+      try {
+        this.map.removeControl(control)
+      } catch (e) {
+        // Control may already be removed - ignore error
+      }
+    })
+    this.controls = []
+    this.publishControl = null
+    console.log('✅ DM controls destroyed')
   }
 
   /**
@@ -70,6 +88,10 @@ export class DmControls {
    * Add publish/download controls
    */
   private addPublishControls(): void {
+    // Store unsubscribe functions for cleanup
+    let unsubscribeDirty: (() => void) | null = null
+    let unsubscribeAuth: (() => void) | null = null
+
     const PublishControl = L.Control.extend({
       options: { position: 'topleft' },
       onAdd: () => {
@@ -101,26 +123,38 @@ export class DmControls {
           eventBus.emit('dm:publish')
         }
 
-        // Update UI when dirty state changes
-        $isDirty.subscribe((dirty) => {
+        // Update UI when dirty state changes (track for cleanup)
+        unsubscribeDirty = $isDirty.subscribe((dirty) => {
           const indicator = container.querySelector('.dm-dirty-indicator') as HTMLElement
           if (indicator) {
             indicator.style.display = dirty ? 'block' : 'none'
           }
         })
 
-        // Update UI when authentication changes
-        $isAuthenticated.subscribe((authenticated) => {
+        // Update UI when authentication changes (track for cleanup)
+        unsubscribeAuth = $isAuthenticated.subscribe((authenticated) => {
           publishBtn.style.opacity = authenticated ? '1' : '0.5'
           publishBtn.style.cursor = authenticated ? 'pointer' : 'not-allowed'
         })
 
         return container
+      },
+      onRemove: () => {
+        // Cleanup subscriptions when control is removed
+        if (unsubscribeDirty) {
+          unsubscribeDirty()
+          unsubscribeDirty = null
+        }
+        if (unsubscribeAuth) {
+          unsubscribeAuth()
+          unsubscribeAuth = null
+        }
       }
     })
 
     this.publishControl = new PublishControl()
     this.map.addControl(this.publishControl)
+    this.controls.push(this.publishControl)
   }
 
   /**
@@ -164,7 +198,9 @@ export class DmControls {
       }
     })
 
-    this.map.addControl(new TerrainControls())
+    const terrainControl = new TerrainControls()
+    this.map.addControl(terrainControl)
+    this.controls.push(terrainControl)
   }
 
   /**
@@ -189,7 +225,9 @@ export class DmControls {
       }
     })
 
-    this.map.addControl(new MergeControl())
+    const mergeControl = new MergeControl()
+    this.map.addControl(mergeControl)
+    this.controls.push(mergeControl)
   }
 
   /**
@@ -214,7 +252,9 @@ export class DmControls {
       }
     })
 
-    this.map.addControl(new DeleteNodeControl())
+    const deleteNodeControl = new DeleteNodeControl()
+    this.map.addControl(deleteNodeControl)
+    this.controls.push(deleteNodeControl)
   }
 
   /**
@@ -239,13 +279,18 @@ export class DmControls {
       }
     })
 
-    this.map.addControl(new ImportControl())
+    const importControl = new ImportControl()
+    this.map.addControl(importControl)
+    this.controls.push(importControl)
   }
 
   /**
    * Add authentication controls
    */
   private addAuthenticationControls(): void {
+    // Store unsubscribe function for cleanup
+    let unsubscribeAuth: (() => void) | null = null
+
     const AuthControl = L.Control.extend({
       options: { position: 'topleft' },
       onAdd: () => {
@@ -271,17 +316,26 @@ export class DmControls {
           }
         }
 
-        // Update UI when authentication changes
-        $isAuthenticated.subscribe((authenticated) => {
+        // Update UI when authentication changes (track for cleanup)
+        unsubscribeAuth = $isAuthenticated.subscribe((authenticated) => {
           label.textContent = authenticated ? this.t('dm.logout') : this.t('dm.login')
           button.style.background = authenticated ? '#5cb85c' : '#f0ad4e'
         })
 
         return container
+      },
+      onRemove: () => {
+        // Cleanup subscription when control is removed
+        if (unsubscribeAuth) {
+          unsubscribeAuth()
+          unsubscribeAuth = null
+        }
       }
     })
 
-    this.map.addControl(new AuthControl())
+    const authControl = new AuthControl()
+    this.map.addControl(authControl)
+    this.controls.push(authControl)
   }
 
   /**
