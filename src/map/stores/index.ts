@@ -24,18 +24,48 @@ export const $canPublish = computed(
   (dmMode, authenticated, dirty) => dmMode && authenticated && dirty
 )
 
-// Mark data as dirty when it changes (DM mode only)
-$markers.subscribe(() => {
-  if ($isDmMode.get()) {
-    $dirtyMarkers.set(true)
-  }
-})
+// Dirty tracking subscriptions (initialized when DM mode is enabled)
+let markersUnsubscribe: (() => void) | null = null
+let terrainUnsubscribe: (() => void) | null = null
 
-$terrain.subscribe(() => {
-  if ($isDmMode.get()) {
-    $dirtyTerrain.set(true)
+/**
+ * Initialize dirty tracking for DM mode
+ * Call this when DM mode is enabled
+ */
+export function initializeDirtyTracking(): void {
+  // Avoid double initialization
+  if (markersUnsubscribe || terrainUnsubscribe) {
+    return
   }
-})
+
+  // Mark data as dirty when it changes (DM mode only)
+  markersUnsubscribe = $markers.subscribe(() => {
+    if ($isDmMode.get()) {
+      $dirtyMarkers.set(true)
+    }
+  })
+
+  terrainUnsubscribe = $terrain.subscribe(() => {
+    if ($isDmMode.get()) {
+      $dirtyTerrain.set(true)
+    }
+  })
+}
+
+/**
+ * Cleanup dirty tracking subscriptions
+ * Call this when DM mode is disabled or app is destroyed
+ */
+export function cleanupDirtyTracking(): void {
+  if (markersUnsubscribe) {
+    markersUnsubscribe()
+    markersUnsubscribe = null
+  }
+  if (terrainUnsubscribe) {
+    terrainUnsubscribe()
+    terrainUnsubscribe = null
+  }
+}
 
 // Helper functions
 export function markClean() {

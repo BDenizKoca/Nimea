@@ -9,16 +9,19 @@ import type { MarkersService } from './markers'
 import type { TerrainService } from './terrain'
 import { DmControls } from './dm-controls'
 import { DmModals } from './dm-modals'
-import { $markers, $terrain, $isAuthenticated, markClean } from '../stores'
+import { $markers, $terrain, $isAuthenticated, markClean, initializeDirtyTracking } from '../stores'
 import { eventBus } from '../utils/events'
 import { setupUndoRedoShortcuts, undoRedoManager, RemoveMarkerCommand } from './undo-redo'
 
 export async function initDmMode(
   map: LeafletMap,
   markersService: MarkersService,
-  terrainService: TerrainService
+  terrainService?: TerrainService
 ): Promise<void> {
   console.log('🎮 DM Mode initializing...')
+
+  // Initialize dirty tracking for data changes
+  initializeDirtyTracking()
 
   // Initialize Git client if available
   await initializeGitClient()

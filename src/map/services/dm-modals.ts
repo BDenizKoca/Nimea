@@ -15,10 +15,31 @@ export class DmModals {
   private formHandler: DMFormHandler
   private pendingMarker: LeafletMarker | null = null
   private elements: Record<string, HTMLElement> = {}
+  private showImportModalHandler = () => this.showBulkImportModal()
 
   constructor(map: LeafletMap) {
     this.map = map
     this.formHandler = new DMFormHandler()
+  }
+
+  /**
+   * Cleanup event listeners and pending markers
+   * Call this when DM mode is disabled or app is destroyed
+   */
+  destroy(): void {
+    // Remove eventBus listener
+    eventBus.off('dm:show-import-modal', this.showImportModalHandler)
+
+    // Clean up pending marker
+    if (this.pendingMarker && this.map) {
+      this.map.removeLayer(this.pendingMarker)
+      this.pendingMarker = null
+    }
+
+    // Clear cached elements
+    this.elements = {}
+
+    console.log('✅ DM modals destroyed')
   }
 
   /**
@@ -63,7 +84,7 @@ export class DmModals {
     this.setupModalClickOutsideToClose()
 
     // Listen to events from DM controls
-    eventBus.on('dm:show-import-modal', () => this.showBulkImportModal())
+    eventBus.on('dm:show-import-modal', this.showImportModalHandler)
 
     console.log('✅ DM modals initialized')
   }

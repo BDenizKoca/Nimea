@@ -9,6 +9,7 @@ import { $markers, $isDmMode } from '../stores'
 import type { Marker } from '../types'
 import { eventBus } from '../utils/events'
 import { addTouchTap } from './touch-events'
+import { throttle } from '../utils/debounce'
 
 export class MarkersService {
   private map: LeafletMap | null = null
@@ -73,8 +74,11 @@ export class MarkersService {
   private setupMarkerScaling(): void {
     if (!this.map) return
 
-    this.map.on('zoom', () => this.updateAllMarkerSizes())
-    this.map.on('zoomend', () => this.updateAllMarkerSizes())
+    // Throttle zoom updates to improve performance (max once per 100ms)
+    const throttledUpdate = throttle(() => this.updateAllMarkerSizes(), 100)
+
+    this.map.on('zoom', throttledUpdate)
+    this.map.on('zoomend', () => this.updateAllMarkerSizes()) // Final update for accuracy
 
     // Ensure correct initial size
     setTimeout(() => this.updateAllMarkerSizes(), 0)

@@ -150,15 +150,16 @@ class UndoRedoManager {
   private redoStack: Command[] = []
   private maxStackSize = 50
   private readonly STORAGE_KEY = 'nimea.undo-history'
+  private beforeUnloadHandler = (): void => {
+    this.saveToStorage()
+  }
 
   constructor() {
     // Restore history from sessionStorage on initialization
     this.restoreFromStorage()
 
     // Persist history when page unloads
-    window.addEventListener('beforeunload', () => {
-      this.saveToStorage()
-    })
+    window.addEventListener('beforeunload', this.beforeUnloadHandler)
   }
 
   /**
@@ -239,6 +240,15 @@ class UndoRedoManager {
   }
 
   /**
+   * Cleanup resources and event listeners
+   * Call this when DM mode is disabled or app is destroyed
+   */
+  destroy(): void {
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler)
+    this.clear()
+  }
+
+  /**
    * Save history to sessionStorage
    * Only saves description metadata, not actual command objects
    */
@@ -305,10 +315,21 @@ export const undoRedoManager = new UndoRedoManager()
 export { AddMarkerCommand, RemoveMarkerCommand, UpdateMarkerCommand, AddTerrainCommand, RemoveTerrainCommand }
 
 /**
+ * Keyboard shortcut handler for undo/redo
+ * Stored as a module variable so it can be removed later
+ */
+let keyboardHandler: ((e: KeyboardEvent) => void) | null = null
+
+/**
  * Setup keyboard shortcuts for undo/redo
  */
 export function setupUndoRedoShortcuts(): void {
-  document.addEventListener('keydown', (e) => {
+  // Avoid double initialization
+  if (keyboardHandler) {
+    return
+  }
+
+  keyboardHandler = (e: KeyboardEvent) => {
     // Ctrl+Z or Cmd+Z for undo
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault()
@@ -324,7 +345,19 @@ export function setupUndoRedoShortcuts(): void {
         undoRedoManager.redo()
       }
     }
-  })
+  }
 
+  document.addEventListener('keydown', keyboardHandler)
   console.log('✅ Undo/Redo shortcuts enabled (Ctrl+Z / Ctrl+Shift+Z)')
+}
+
+/**
+ * Cleanup keyboard shortcuts
+ * Call this when DM mode is disabled or app is destroyed
+ */
+export function cleanupUndoRedoShortcuts(): void {
+  if (keyboardHandler) {
+    document.removeEventListener('keydown', keyboardHandler)
+    keyboardHandler = null
+  }
 }

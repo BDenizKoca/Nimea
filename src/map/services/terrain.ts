@@ -13,19 +13,21 @@ import { eventBus } from '../utils/events'
 export class TerrainService {
   private map: LeafletMap | null = null
   private terrainLayer: LeafletGeoJSON | null = null
+  private unsubscribeTerrain?: () => void
+  private unsubscribeDmMode?: () => void
 
   constructor(map: LeafletMap) {
     this.map = map
 
     // Subscribe to terrain changes
-    $terrain.subscribe((terrain) => {
+    this.unsubscribeTerrain = $terrain.subscribe((terrain) => {
       if ($isDmMode.get()) {
         this.renderTerrain(terrain)
       }
     })
 
     // Subscribe to DM mode changes
-    $isDmMode.subscribe((isDm) => {
+    this.unsubscribeDmMode = $isDmMode.subscribe((isDm) => {
       if (isDm) {
         this.renderTerrain($terrain.get())
       } else {
@@ -34,6 +36,27 @@ export class TerrainService {
     })
 
     console.log('✅ Terrain service initialized')
+  }
+
+  /**
+   * Cleanup subscriptions and remove terrain layer
+   * Call this when terrain service is no longer needed
+   */
+  destroy(): void {
+    // Unsubscribe from stores
+    if (this.unsubscribeTerrain) {
+      this.unsubscribeTerrain()
+    }
+    if (this.unsubscribeDmMode) {
+      this.unsubscribeDmMode()
+    }
+
+    // Remove terrain layer from map
+    this.hideTerrain()
+
+    this.map = null
+
+    console.log('✅ Terrain service destroyed')
   }
 
   /**

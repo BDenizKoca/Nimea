@@ -95,29 +95,35 @@ export class RoutingService {
    * Setup event listeners
    */
   private setupEventListeners(): void {
+    // Helper to track event handlers
+    const addTrackedListener = <T = any>(event: string, handler: (data: T) => void): void => {
+      eventBus.on(event, handler)
+      this.eventHandlers.push({ event, handler })
+    }
+
     // Listen for marker clicks to add to route
-    eventBus.on('marker:click', (marker: Marker) => {
+    addTrackedListener<Marker>('marker:click', (marker) => {
       if (this.isRoutingActive()) {
         this.addToRoute(marker)
       }
     })
 
     // Listen for route control events
-    eventBus.on('route:clear', () => {
+    addTrackedListener('route:clear', () => {
       clearRoute()
     })
 
-    eventBus.on('route:remove-stop', (index: number) => {
+    addTrackedListener<number>('route:remove-stop', (index) => {
       removeRouteStop(index)
     })
 
-    eventBus.on('route:set-travel-mode', (mode: 'land' | 'sea') => {
+    addTrackedListener<'land' | 'sea'>('route:set-travel-mode', (mode) => {
       this.travelMode = mode
       this.currentGraph = null // Rebuild graph for new mode
       this.recalculateRoute()
     })
 
-    eventBus.on('route:set-travel-profile', (profile: 'walking' | 'wagon' | 'horse') => {
+    addTrackedListener<'walking' | 'wagon' | 'horse'>('route:set-travel-profile', (profile) => {
       this.travelProfile = profile
       this.recalculateRoute()
     })

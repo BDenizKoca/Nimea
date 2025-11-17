@@ -3,6 +3,11 @@
  * Zero-backend TTRPG map with Eleventy + Decap CMS
  */
 
+import type { Map as LeafletMap } from 'leaflet'
+import type { MapService } from './services/map'
+import type { MarkersService } from './services/markers'
+import type { TerrainService } from './services/terrain'
+import type { RoutingService } from './services/routing'
 import { $isDmMode, $markers, $terrain } from './stores'
 import { DataLoader } from './services/data-loader'
 import { eventBus } from './utils/events'
@@ -21,7 +26,11 @@ function initDmMode(): void {
   try {
     storedDm = localStorage.getItem('nimea.dm') === '1'
   } catch (e) {
-    console.warn('localStorage not available')
+    console.warn('localStorage not available:', e)
+    eventBus.emit('notification', {
+      message: 'Local storage unavailable - settings will not persist',
+      type: 'warning'
+    })
   }
 
   const identityDm = !!(
@@ -38,7 +47,7 @@ function initDmMode(): void {
     try {
       localStorage.setItem('nimea.dm', '1')
     } catch (e) {
-      console.warn('Could not persist DM mode')
+      console.warn('Could not persist DM mode:', e)
     }
   }
 
@@ -78,8 +87,8 @@ async function init(): Promise<void> {
     console.log('✅ Config loaded')
 
     // Initialize Leaflet map
-    let map: any
-    let mapService: any
+    let map: LeafletMap
+    let mapService: MapService
     try {
       const mapModule = await import('./services/map')
       mapService = mapModule.mapService
@@ -100,10 +109,10 @@ async function init(): Promise<void> {
     }
 
     // Initialize marker service
-    let markersService: any
+    let markersService: MarkersService
     try {
-      const { MarkersService } = await import('./services/markers')
-      markersService = new MarkersService(map)
+      const { MarkersService: MarkersServiceClass } = await import('./services/markers')
+      markersService = new MarkersServiceClass(map)
     } catch (error) {
       console.error('Failed to initialize markers service:', error)
       eventBus.emit('notification', {
@@ -128,10 +137,10 @@ async function init(): Promise<void> {
     }
 
     // Initialize terrain service
-    let terrainService: any
+    let terrainService: TerrainService | undefined
     try {
-      const { TerrainService } = await import('./services/terrain')
-      terrainService = new TerrainService(map)
+      const { TerrainService: TerrainServiceClass } = await import('./services/terrain')
+      terrainService = new TerrainServiceClass(map)
     } catch (error) {
       console.error('Failed to initialize terrain service:', error)
       eventBus.emit('notification', {
@@ -142,10 +151,10 @@ async function init(): Promise<void> {
     }
 
     // Initialize routing service
-    let routingService: any
+    let routingService: RoutingService | undefined
     try {
-      const { RoutingService } = await import('./services/routing')
-      routingService = new RoutingService(map)
+      const { RoutingService: RoutingServiceClass } = await import('./services/routing')
+      routingService = new RoutingServiceClass(map)
     } catch (error) {
       console.error('Failed to initialize routing service:', error)
       eventBus.emit('notification', {
@@ -212,7 +221,9 @@ if (window.netlifyIdentity) {
   window.netlifyIdentity.on('login', () => {
     try {
       localStorage.setItem('nimea.dm', '1')
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Could not persist DM mode to localStorage:', e)
+    }
     if (!$isDmMode.get()) {
       window.location.reload()
     }
@@ -221,7 +232,9 @@ if (window.netlifyIdentity) {
   window.netlifyIdentity.on('logout', () => {
     try {
       localStorage.removeItem('nimea.dm')
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Could not remove DM mode from localStorage:', e)
+    }
     if ($isDmMode.get()) {
       window.location.reload()
     }
