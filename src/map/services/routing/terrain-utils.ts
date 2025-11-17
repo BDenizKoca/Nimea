@@ -9,13 +9,39 @@ const WATER_KINDS = new Set(['impassable'])
 // Cache for terrain cost calculations (cleared when terrain changes)
 let terrainCostCache = new Map<string, number>()
 let terrainVersion = 0
+let terrainUnsubscribe: (() => void) | null = null
 
-// Subscribe to terrain changes to invalidate cache
-$terrain.subscribe(() => {
+/**
+ * Initialize terrain cost cache system
+ * Sets up subscription to clear cache when terrain changes
+ */
+export function initTerrainCache(): void {
+  // Avoid double initialization
+  if (terrainUnsubscribe) return
+
+  // Subscribe to terrain changes to invalidate cache
+  terrainUnsubscribe = $terrain.subscribe(() => {
+    terrainCostCache.clear()
+    terrainVersion++
+    console.log('Terrain cost cache cleared (v' + terrainVersion + ')')
+  })
+}
+
+/**
+ * Cleanup terrain cost cache and subscriptions
+ * Call this when routing service is being destroyed
+ */
+export function cleanupTerrainCache(): void {
+  if (terrainUnsubscribe) {
+    terrainUnsubscribe()
+    terrainUnsubscribe = null
+  }
   terrainCostCache.clear()
-  terrainVersion++
-  console.log('Terrain cost cache cleared (v' + terrainVersion + ')')
-})
+  console.log('✅ Terrain cost cache destroyed')
+}
+
+// Auto-initialize on module load (will be called by routing service)
+initTerrainCache()
 
 /**
  * Check if a point is inside a polygon using ray casting algorithm

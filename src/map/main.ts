@@ -17,6 +17,54 @@ import { loadingManager } from './services/loading'
 
 console.log('🗺️  Nimea Map v2.0 - Modernized Stack')
 
+// App-level cleanup tracking
+const appCleanup = {
+  routeToggleHandler: null as (() => void) | null,
+  netlifyLoginHandler: null as (() => void) | null,
+  netlifyLogoutHandler: null as (() => void) | null,
+  routeToggleBtn: null as Element | null,
+  services: {
+    map: null as MapService | null,
+    markers: null as MarkersService | null,
+    terrain: undefined as TerrainService | undefined,
+    routing: undefined as RoutingService | undefined
+  }
+}
+
+/**
+ * Cleanup all app resources and event listeners
+ * Call this when navigating away or unmounting the app
+ */
+export function cleanup(): void {
+  console.log('🧹 Cleaning up app resources...')
+
+  // Remove DOM event listeners
+  if (appCleanup.routeToggleBtn && appCleanup.routeToggleHandler) {
+    appCleanup.routeToggleBtn.removeEventListener('click', appCleanup.routeToggleHandler)
+  }
+
+  // Remove Netlify Identity listeners
+  // Note: netlifyIdentity doesn't provide an 'off' method in the public API
+  // Handlers will be cleaned up when the page unloads
+  // If using an SPA framework, consider using netlifyIdentity.close() to clean up
+
+  // Cleanup services (if they have destroy methods)
+  if (appCleanup.services.routing?.destroy) {
+    appCleanup.services.routing.destroy()
+  }
+  if (appCleanup.services.terrain?.destroy) {
+    appCleanup.services.terrain.destroy()
+  }
+  if (appCleanup.services.markers?.destroy) {
+    appCleanup.services.markers.destroy()
+  }
+
+  // Clear loading manager
+  loadingManager.destroy()
+
+  console.log('✅ App cleanup complete')
+}
+
 // Initialize DM mode from URL or localStorage
 function initDmMode(): void {
   const urlParams = new URLSearchParams(window.location.search)
@@ -164,13 +212,20 @@ async function init(): Promise<void> {
       // Continue - routing is optional
     }
 
-    // Setup route toggle button
+    // Setup route toggle button with cleanup tracking
     const routeToggleBtn = document.querySelector('.route-toggle')
     if (routeToggleBtn && routingService) {
-      routeToggleBtn.addEventListener('click', () => {
+      appCleanup.routeToggleBtn = routeToggleBtn
+      appCleanup.routeToggleHandler = () => {
         routingService.toggleRouteSidebar()
-      })
+      }
+      routeToggleBtn.addEventListener('click', appCleanup.routeToggleHandler)
     }
+
+    // Track services for cleanup
+    appCleanup.services.markers = markersService
+    appCleanup.services.terrain = terrainService
+    appCleanup.services.routing = routingService
 
     // Initialize DM mode if enabled
     if ($isDmMode.get()) {
@@ -216,9 +271,9 @@ if (document.readyState === 'loading') {
   init()
 }
 
-// Handle Netlify Identity
+// Handle Netlify Identity with cleanup tracking
 if (window.netlifyIdentity) {
-  window.netlifyIdentity.on('login', () => {
+  appCleanup.netlifyLoginHandler = () => {
     try {
       localStorage.setItem('nimea.dm', '1')
     } catch (e) {
@@ -227,9 +282,9 @@ if (window.netlifyIdentity) {
     if (!$isDmMode.get()) {
       window.location.reload()
     }
-  })
+  }
 
-  window.netlifyIdentity.on('logout', () => {
+  appCleanup.netlifyLogoutHandler = () => {
     try {
       localStorage.removeItem('nimea.dm')
     } catch (e) {
@@ -238,8 +293,14 @@ if (window.netlifyIdentity) {
     if ($isDmMode.get()) {
       window.location.reload()
     }
-  })
+  }
+
+  window.netlifyIdentity.on('login', appCleanup.netlifyLoginHandler)
+  window.netlifyIdentity.on('logout', appCleanup.netlifyLogoutHandler)
 }
+
+// Cleanup on page unload (for SPA navigation)
+window.addEventListener('beforeunload', cleanup)
 
 // Export for debugging
 if (import.meta.env.DEV) {

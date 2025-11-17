@@ -37,6 +37,9 @@ const SHORTCUTS: Shortcut[] = [
 export class KeyboardShortcutsManager {
   private modalElement: HTMLElement | null = null
   private isModalOpen = false
+  private globalKeydownHandler: ((e: KeyboardEvent) => void) | null = null
+  private modalCloseHandler: (() => void) | null = null
+  private overlayClickHandler: (() => void) | null = null
 
   constructor() {
     this.setupGlobalShortcuts()
@@ -47,7 +50,7 @@ export class KeyboardShortcutsManager {
    * Setup global keyboard shortcuts
    */
   private setupGlobalShortcuts(): void {
-    document.addEventListener('keydown', (e) => {
+    this.globalKeydownHandler = (e: KeyboardEvent) => {
       // ? - Show help
       if (e.key === '?' && !this.isInputFocused()) {
         e.preventDefault()
@@ -80,9 +83,47 @@ export class KeyboardShortcutsManager {
         e.preventDefault()
         eventBus.emit('dm:publish')
       }
-    })
+    }
 
+    document.addEventListener('keydown', this.globalKeydownHandler)
     console.log('✅ Keyboard shortcuts enabled (press ? for help)')
+  }
+
+  /**
+   * Cleanup all event listeners and remove modal
+   * Call this when app is being destroyed
+   */
+  destroy(): void {
+    // Remove global keydown listener
+    if (this.globalKeydownHandler) {
+      document.removeEventListener('keydown', this.globalKeydownHandler)
+      this.globalKeydownHandler = null
+    }
+
+    // Remove modal event listeners
+    if (this.modalElement) {
+      const closeBtn = this.modalElement.querySelector('.modal-close')
+      if (closeBtn && this.modalCloseHandler) {
+        closeBtn.removeEventListener('click', this.modalCloseHandler)
+      }
+
+      const overlay = this.modalElement.querySelector('.modal-overlay')
+      if (overlay && this.overlayClickHandler) {
+        overlay.removeEventListener('click', this.overlayClickHandler)
+      }
+
+      // Remove modal element
+      this.modalElement.remove()
+      this.modalElement = null
+    }
+
+    // Remove injected styles
+    const styles = document.getElementById('keyboard-shortcuts-styles')
+    if (styles) {
+      styles.remove()
+    }
+
+    console.log('✅ Keyboard shortcuts destroyed')
   }
 
   /**
@@ -124,13 +165,15 @@ export class KeyboardShortcutsManager {
     document.body.appendChild(modal)
     this.modalElement = modal
 
-    // Close button handler
+    // Close button handler (track for cleanup)
+    this.modalCloseHandler = () => this.closeModal()
     const closeBtn = modal.querySelector('.modal-close')
-    closeBtn?.addEventListener('click', () => this.closeModal())
+    closeBtn?.addEventListener('click', this.modalCloseHandler)
 
-    // Overlay click handler
+    // Overlay click handler (track for cleanup)
+    this.overlayClickHandler = () => this.closeModal()
     const overlay = modal.querySelector('.modal-overlay')
-    overlay?.addEventListener('click', () => this.closeModal())
+    overlay?.addEventListener('click', this.overlayClickHandler)
 
     // Add CSS styles
     this.injectStyles()

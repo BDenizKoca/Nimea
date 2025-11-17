@@ -12,6 +12,7 @@ import type { Marker, RouteStop } from '../types'
 import type { RoutingGraph, TerrainCosts } from './routing/types'
 import { buildRoutingGraph } from './routing/graph-builder'
 import { findShortestPathAStar, computeActualDistance } from './routing/pathfinding'
+import { cleanupTerrainCache } from './routing/terrain-utils'
 
 export class RoutingService {
   private map: LeafletMap
@@ -85,6 +86,9 @@ export class RoutingService {
 
     // Clear route from map
     this.clearRouteFromMap()
+
+    // Cleanup terrain cost cache
+    cleanupTerrainCache()
 
     this.currentGraph = null
 
