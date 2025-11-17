@@ -8,6 +8,7 @@ import type { Map as LeafletMap, Marker as LeafletMarker, DivIcon } from 'leafle
 import { $markers, $isDmMode } from '../stores'
 import type { Marker } from '../types'
 import { eventBus } from '../utils/events'
+import { addTouchTap } from './touch-events'
 
 export class MarkersService {
   private map: LeafletMap | null = null
@@ -233,8 +234,13 @@ export class MarkersService {
       // Store reference
       this.allMarkers.push(marker as any)
 
-      // Emit marker click event for DM tools
+      // Add click handler for desktop
       marker.on('click', () => {
+        eventBus.emit('marker:click', markerData)
+      })
+
+      // Add touch tap handler for mobile (prevents false taps during panning)
+      addTouchTap(marker, () => {
         eventBus.emit('marker:click', markerData)
       })
     })

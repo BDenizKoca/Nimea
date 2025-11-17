@@ -23,15 +23,16 @@ export class MapService {
       throw new Error(`Map container #${this.containerId} not found`)
     }
 
-    // Create map instance
+    // Create map instance with mobile tap support
     this.map = L.map(this.containerId, {
       crs: L.CRS.Simple,
       minZoom: -3,
       maxZoom: 4,
       zoomControl: false,
-      attributionControl: false
-      // Note: tap option removed as it's not in official MapOptions type
-    })
+      attributionControl: false,
+      tap: true, // Enable mobile tap detection
+      tapTolerance: 15 // Tolerance for tap vs drag (pixels)
+    } as any) // Use 'as any' since tap is not in official types but IS supported
 
     // Ensure viewport meta tag for mobile
     this.ensureViewportMeta()

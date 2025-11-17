@@ -6,6 +6,7 @@
 import { $isDmMode, $markers, $terrain } from './stores'
 import { DataLoader } from './services/data-loader'
 import { eventBus } from './utils/events'
+import './services/i18n' // Initialize i18n system (imported for side effects)
 
 console.log('🗺️  Nimea Map v2.0 - Modernized Stack')
 

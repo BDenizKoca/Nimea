@@ -1,19 +1,35 @@
 /**
  * Routing Service
- * Integration layer for the routing system with reactive stores
- * Wraps existing routing logic and connects it to the new architecture
+ * Complete routing system with A* pathfinding, terrain costs, and multi-layer graph
  */
 
 import type { Map as LeafletMap } from 'leaflet'
-import { $route, addRouteStop, removeRouteStop, clearRoute } from '../stores'
+import { $route, $terrain, addRouteStop, removeRouteStop, clearRoute } from '../stores'
 import { eventBus } from '../utils/events'
 import { MAP_CONFIG } from '../constants'
 import type { Marker, RouteStop } from '../types'
+import type { RoutingGraph, TerrainCosts } from './routing/types'
+import { buildRoutingGraph } from './routing/graph-builder'
+import { findShortestPathAStar, computeActualDistance } from './routing/pathfinding'
 
 export class RoutingService {
   private map: LeafletMap
   private travelMode: 'land' | 'sea' = 'land'
   private travelProfile: 'walking' | 'wagon' | 'horse' = 'walking'
+  private currentPolyline: any = null
+  private currentGraph: RoutingGraph | null = null
+
+  // Routing configuration
+  private readonly TERRAIN_GRID_SIZE = 20 // High-density grid (20px)
+  private readonly ROAD_CONNECTION_DISTANCE = 300
+
+  // Terrain costs (from config)
+  private readonly TERRAIN_COSTS: TerrainCosts = {
+    road: 0.7,
+    open: 1.0,
+    difficult: 2.0,
+    impassable: 50.0
+  }
 
   constructor(map: LeafletMap) {
     this.map = map
@@ -23,10 +39,16 @@ export class RoutingService {
       this.updateRouteDisplay([...route]) // Create mutable copy
     })
 
+    // Rebuild graph when terrain changes
+    $terrain.subscribe(() => {
+      this.currentGraph = null // Invalidate graph
+      this.recalculateRoute()
+    })
+
     // Setup event listeners
     this.setupEventListeners()
 
-    console.log('✅ Routing service initialized')
+    console.log('✅ Routing service initialized with A* pathfinding')
   }
 
   /**
@@ -51,6 +73,7 @@ export class RoutingService {
 
     eventBus.on('route:set-travel-mode', (mode: 'land' | 'sea') => {
       this.travelMode = mode
+      this.currentGraph = null // Rebuild graph for new mode
       this.recalculateRoute()
     })
 
@@ -102,61 +125,112 @@ export class RoutingService {
       return
     }
 
-    // Calculate and display route
+    // Calculate and display route using pathfinding
     this.calculateAndDisplayRoute(route)
   }
 
   /**
-   * Calculate and display route
+   * Build or get cached routing graph
    */
-  private calculateAndDisplayRoute(route: RouteStop[]): void {
-    // For now, just draw a simple polyline between markers
-    // The full pathfinding algorithm can be integrated later
-    const points = route.map(stop => [stop.marker.y, stop.marker.x])
-
-    // Remove old route if exists
-    this.clearRouteFromMap()
-
-    // Draw new route
-    const polyline = (window as any).L.polyline(points, {
-      color: '#e74c3c',
-      weight: 4,
-      opacity: 0.8,
-      pane: 'routePane'
-    }).addTo(this.map)
-
-    // Store reference for later removal
-    ;(this as any).currentPolyline = polyline
-
-    // Calculate distance and time
-    const distance = this.calculateRouteDistance(route)
-    const time = this.calculateRouteTime(distance)
-
-    // Update route summary
-    this.updateRouteSummary(route, distance, time)
-
-    // Emit event
-    eventBus.emit('route:calculated', { route, distance, time })
+  private getRoutingGraph(): RoutingGraph {
+    if (!this.currentGraph) {
+      const seaTravelEnabled = this.travelMode === 'sea'
+      console.log('Building routing graph...')
+      this.currentGraph = buildRoutingGraph(
+        this.TERRAIN_COSTS,
+        this.TERRAIN_GRID_SIZE,
+        this.ROAD_CONNECTION_DISTANCE,
+        seaTravelEnabled
+      )
+      console.log(`Graph built: ${this.currentGraph.nodes.size} nodes, ${this.currentGraph.edges.length} edges`)
+    }
+    return this.currentGraph
   }
 
   /**
-   * Calculate route distance (simple straight-line for now)
+   * Calculate and display route using A* pathfinding
    */
-  private calculateRouteDistance(route: RouteStop[]): number {
+  private calculateAndDisplayRoute(route: RouteStop[]): void {
+    // Get routing graph
+    const graph = this.getRoutingGraph()
+
+    // Build complete path through all waypoints
+    const fullPath: Array<[number, number]> = []
     let totalDistance = 0
+    let pathfindingFailed = false
 
     for (let i = 0; i < route.length - 1; i++) {
       const from = route[i].marker
       const to = route[i + 1].marker
 
-      const dx = (to.x - from.x) * MAP_CONFIG.kmPerPixel
-      const dy = (to.y - from.y) * MAP_CONFIG.kmPerPixel
+      // Find path between consecutive markers
+      const startNodeId = `marker_${from.id}`
+      const endNodeId = `marker_${to.id}`
 
-      const distance = Math.sqrt(dx * dx + dy * dy)
-      totalDistance += distance
+      console.log(`Finding path from ${from.name} to ${to.name}...`)
+      const pathIds = findShortestPathAStar(graph, startNodeId, endNodeId)
+
+      if (!pathIds) {
+        console.error(`No path found between ${from.name} and ${to.name}`)
+        pathfindingFailed = true
+        // Fall back to straight line for this segment
+        fullPath.push([from.y, from.x])
+        if (i === route.length - 2) {
+          fullPath.push([to.y, to.x])
+        }
+        continue
+      }
+
+      // Convert node IDs to coordinates
+      const segmentPath = pathIds.map((nodeId) => {
+        const node = graph.nodes.get(nodeId)!
+        return [node.y, node.x] as [number, number]
+      })
+
+      // Add to full path (avoid duplicating connection points)
+      if (fullPath.length === 0) {
+        fullPath.push(...segmentPath)
+      } else {
+        fullPath.push(...segmentPath.slice(1))
+      }
+
+      // Calculate actual distance for this segment
+      const segmentDistance = computeActualDistance(
+        pathIds,
+        graph.edgeMap,
+        MAP_CONFIG.kmPerPixel
+      )
+      totalDistance += segmentDistance
+      console.log(`  Path found: ${pathIds.length} nodes, ${segmentDistance.toFixed(1)} km`)
     }
 
-    return totalDistance
+    // Remove old route if exists
+    this.clearRouteFromMap()
+
+    // Draw new route
+    const polylineColor = pathfindingFailed ? '#ff9800' : '#e74c3c' // Orange if pathfinding failed
+    this.currentPolyline = (window as any).L.polyline(fullPath, {
+      color: polylineColor,
+      weight: 4,
+      opacity: 0.8,
+      pane: 'routePane'
+    }).addTo(this.map)
+
+    // Calculate time
+    const time = this.calculateRouteTime(totalDistance)
+
+    // Update route summary
+    this.updateRouteSummary(route, totalDistance, time, pathfindingFailed)
+
+    // Emit event
+    eventBus.emit('route:calculated', { route, distance: totalDistance, time })
+
+    if (pathfindingFailed) {
+      eventBus.emit('notification', {
+        message: 'Some route segments use straight lines (no path found)',
+        type: 'warning'
+      })
+    }
   }
 
   /**
@@ -171,16 +245,25 @@ export class RoutingService {
   /**
    * Update route summary in UI
    */
-  private updateRouteSummary(route: RouteStop[], distance: number, time: number): void {
+  private updateRouteSummary(
+    route: RouteStop[],
+    distance: number,
+    time: number,
+    pathfindingFailed: boolean
+  ): void {
     const summaryEl = document.getElementById('route-summary')
     if (!summaryEl) return
 
     const days = Math.floor(time / 24)
     const hours = Math.floor(time % 24)
 
+    const warningIcon = pathfindingFailed
+      ? '<span style="color: #ff9800;">⚠</span> '
+      : ''
+
     summaryEl.innerHTML = `
       <div class="route-stats">
-        <p><strong>Distance:</strong> ${distance.toFixed(1)} km</p>
+        <p><strong>Distance:</strong> ${warningIcon}${distance.toFixed(1)} km</p>
         <p><strong>Time:</strong> ${days}d ${hours}h</p>
         <p><strong>Mode:</strong> ${this.travelMode} (${this.travelProfile})</p>
       </div>
@@ -189,16 +272,20 @@ export class RoutingService {
     // Update stops list
     const stopsEl = document.getElementById('route-stops')
     if (stopsEl) {
-      stopsEl.innerHTML = route.map((stop, idx) => `
+      stopsEl.innerHTML = route
+        .map(
+          (stop, idx) => `
         <div class="route-stop" data-index="${idx}">
           <span class="stop-number">${idx + 1}</span>
           <span class="stop-name">${stop.marker.name}</span>
           <button class="remove-stop" data-index="${idx}">×</button>
         </div>
-      `).join('')
+      `
+        )
+        .join('')
 
       // Add remove handlers
-      stopsEl.querySelectorAll('.remove-stop').forEach(btn => {
+      stopsEl.querySelectorAll('.remove-stop').forEach((btn) => {
         btn.addEventListener('click', () => {
           const index = parseInt((btn as HTMLElement).dataset.index || '0')
           removeRouteStop(index)
@@ -211,11 +298,10 @@ export class RoutingService {
    * Clear route from map
    */
   private clearRouteFromMap(): void {
-    const polyline = (this as any).currentPolyline
-    if (polyline && this.map.hasLayer(polyline)) {
-      this.map.removeLayer(polyline)
+    if (this.currentPolyline && this.map.hasLayer(this.currentPolyline)) {
+      this.map.removeLayer(this.currentPolyline)
     }
-    ;(this as any).currentPolyline = null
+    this.currentPolyline = null
   }
 
   /**
