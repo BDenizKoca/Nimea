@@ -11,7 +11,7 @@ import { DmControls } from './dm-controls'
 import { DmModals } from './dm-modals'
 import { $markers, $terrain, $isAuthenticated, markClean } from '../stores'
 import { eventBus } from '../utils/events'
-import { setupUndoRedoShortcuts, undoRedoManager } from './undo-redo'
+import { setupUndoRedoShortcuts, undoRedoManager, RemoveMarkerCommand } from './undo-redo'
 
 export async function initDmMode(
   map: LeafletMap,
@@ -149,6 +149,18 @@ function setupMapEventListeners(
   // Handle marker click in DM mode for editing
   eventBus.on('marker:click:dm', (markerData) => {
     dmModals.showMarkerEditModal(markerData)
+  })
+
+  // Handle marker deletion from popup button
+  eventBus.on('marker:delete', (markerId: string) => {
+    // Use undo/redo system for deletions
+    const markers = $markers.get()
+    const markerToDelete = markers.find((m) => m.id === markerId)
+
+    if (markerToDelete) {
+      const deleteCommand = new RemoveMarkerCommand(markerToDelete)
+      undoRedoManager.execute(deleteCommand)
+    }
   })
 }
 

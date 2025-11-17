@@ -197,6 +197,7 @@ export class MarkersService {
     const name = this.getMarkerName(marker)
     const summary = this.getMarkerSummary(marker)
     const faction = this.getMarkerFaction(marker)
+    const isDm = $isDmMode.get()
 
     let html = `<div class="marker-popup">
       <h3>${name}</h3>`
@@ -212,6 +213,31 @@ export class MarkersService {
     // Add wiki link if exists
     if (marker.wikiSlug) {
       html += `<p><a href="/${this.currentLanguage}/lore/${marker.wikiSlug}/" target="_blank">Read more →</a></p>`
+    }
+
+    // Add DM controls (Edit/Delete buttons)
+    if (isDm) {
+      const editText = this.currentLanguage === 'en' ? 'Edit' : 'Düzenle'
+      const deleteText = this.currentLanguage === 'en' ? 'Delete' : 'Sil'
+
+      html += `
+        <div class="marker-popup-actions" style="margin-top: 12px; display: flex; gap: 8px;">
+          <button
+            class="marker-edit-btn"
+            data-marker-id="${marker.id}"
+            style="flex: 1; padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;"
+          >
+            ✏️ ${editText}
+          </button>
+          <button
+            class="marker-delete-btn"
+            data-marker-id="${marker.id}"
+            style="flex: 1; padding: 6px 12px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;"
+          >
+            🗑️ ${deleteText}
+          </button>
+        </div>
+      `
     }
 
     html += `</div>`
@@ -254,6 +280,45 @@ export class MarkersService {
       const popupContent = this.createPopupContent(markerData)
       marker.bindPopup(popupContent)
 
+      // Setup popup button event handlers (for DM mode Edit/Delete buttons)
+      if (isDm) {
+        marker.on('popupopen', () => {
+          // Find the popup element
+          const popup = marker.getPopup()
+          if (!popup) return
+
+          const popupElement = popup.getElement()
+          if (!popupElement) return
+
+          // Add Edit button handler
+          const editBtn = popupElement.querySelector('.marker-edit-btn')
+          if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+              e.stopPropagation() // Prevent marker click event
+              marker.closePopup() // Close popup first
+              eventBus.emit('marker:click:dm', markerData)
+            })
+          }
+
+          // Add Delete button handler
+          const deleteBtn = popupElement.querySelector('.marker-delete-btn')
+          if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation() // Prevent marker click event
+              const confirmText =
+                this.currentLanguage === 'en'
+                  ? `Delete marker "${markerData.name}"? This cannot be undone.`
+                  : `"${markerData.name}" işaretini silmek istediğine emin misin? Bu işlem geri alınamaz.`
+
+              if (confirm(confirmText)) {
+                marker.closePopup()
+                eventBus.emit('marker:delete', markerData.id)
+              }
+            })
+          }
+        })
+      }
+
       // Add to layer
       if (this.markersLayer) {
         marker.addTo(this.markersLayer)
@@ -262,24 +327,23 @@ export class MarkersService {
       // Store reference
       this.allMarkers.push(marker as any)
 
-      // Add click handler for desktop
+      // Add click handler for desktop (only for non-DM mode or when popup is closed)
       marker.on('click', () => {
-        // In DM mode, emit special event for editing
-        if (isDm) {
-          eventBus.emit('marker:click:dm', markerData)
-        } else {
+        // In regular mode, emit click event
+        if (!isDm) {
           eventBus.emit('marker:click', markerData)
         }
+        // In DM mode, clicking the marker itself (not popup buttons) does nothing
+        // Edit/Delete buttons in popup handle those actions
       })
 
-      // Add touch tap handler for mobile (prevents false taps during panning)
+      // Add touch tap handler for mobile
       addTouchTap(marker, () => {
-        // In DM mode, emit special event for editing
-        if (isDm) {
-          eventBus.emit('marker:click:dm', markerData)
-        } else {
+        // In regular mode, emit click event
+        if (!isDm) {
           eventBus.emit('marker:click', markerData)
         }
+        // In DM mode, tapping just opens the popup with Edit/Delete buttons
       })
     })
 
