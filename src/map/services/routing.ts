@@ -7,7 +7,7 @@ import type { Map as LeafletMap } from 'leaflet'
 import { $route, $terrain, addRouteStop, removeRouteStop, clearRoute } from '../stores'
 import { eventBus } from '../utils/events'
 import { debounce } from '../utils/debounce'
-import { MAP_CONFIG } from '../constants'
+import { MAP_CONFIG, ROUTING_CONSTANTS } from '../constants'
 import type { Marker, RouteStop } from '../types'
 import type { RoutingGraph, TerrainCosts } from './routing/types'
 import { buildRoutingGraph } from './routing/graph-builder'
@@ -43,12 +43,12 @@ export class RoutingService {
     const debouncedTerrainRebuild = debounce(() => {
       this.currentGraph = null // Invalidate graph
       this.recalculateRoute()
-    }, 500) // Wait 500ms after user stops drawing
+    }, ROUTING_CONSTANTS.TERRAIN_REBUILD_DEBOUNCE_MS)
 
     // Debounced route recalculation - prevents rapid recalculations on quick clicks
     const debouncedRouteUpdate = debounce((route: RouteStop[]) => {
       this.updateRouteDisplay([...route]) // Create mutable copy
-    }, 300) // Wait 300ms after last route change
+    }, ROUTING_CONSTANTS.ROUTE_UPDATE_DEBOUNCE_MS)
 
     // Subscribe to route changes
     this.unsubscribeRoute = $route.subscribe((route) => {

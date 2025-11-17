@@ -10,6 +10,7 @@ import type { Marker } from '../types'
 import { eventBus } from '../utils/events'
 import { addTouchTap } from './touch-events'
 import { throttle } from '../utils/debounce'
+import { MARKER_CONSTANTS } from '../constants'
 
 /**
  * Extended Leaflet Marker with custom marker data
@@ -81,8 +82,8 @@ export class MarkersService {
   private setupMarkerScaling(): void {
     if (!this.map) return
 
-    // Throttle zoom updates to improve performance (max once per 100ms)
-    const throttledUpdate = throttle(() => this.updateAllMarkerSizes(), 100)
+    // Throttle zoom updates to improve performance
+    const throttledUpdate = throttle(() => this.updateAllMarkerSizes(), MARKER_CONSTANTS.ZOOM_THROTTLE_MS)
 
     this.map.on('zoom', throttledUpdate)
     this.map.on('zoomend', () => this.updateAllMarkerSizes()) // Final update for accuracy
@@ -93,22 +94,24 @@ export class MarkersService {
 
   /**
    * Calculate icon size based on zoom level
+   *
+   * Uses eased interpolation to make icons feel appropriately sized across zoom levels.
+   * Linear scaling feels too abrupt, so we apply a power curve.
    */
   private calculateIconSize(zoom: number): number {
-    if (!this.map) return 32
+    if (!this.map) return MARKER_CONSTANTS.DEFAULT_ICON_SIZE
 
     const minZ = this.map.getMinZoom()
     const maxZ = this.map.getMaxZoom()
     const span = Math.max(1, maxZ - minZ)
     const t = (zoom - minZ) / span // 0 at min zoom, 1 at max zoom
 
-    // Apply slight ease to bias sizes larger at common zooms
-    const eased = Math.pow(t, 1.15)
+    // Apply easing to bias toward larger sizes at common zoom levels
+    const eased = Math.pow(t, MARKER_CONSTANTS.ZOOM_EASE_FACTOR)
 
-    // Size range: 22px at min zoom, 140px at max zoom
-    const minSize = 22
-    const maxSize = 140
-    const size = minSize + eased * (maxSize - minSize)
+    // Interpolate between min and max icon sizes
+    const { ICON_SIZE_MIN, ICON_SIZE_MAX } = MARKER_CONSTANTS
+    const size = ICON_SIZE_MIN + eased * (ICON_SIZE_MAX - ICON_SIZE_MIN)
 
     return Math.round(size)
   }
@@ -134,7 +137,7 @@ export class MarkersService {
 
           // For emoji/text icons, update font size
           if (marker.markerData.customIcon) {
-            const fontSize = Math.round(newSize * 0.78)
+            const fontSize = Math.round(newSize * MARKER_CONSTANTS.EMOJI_FONT_SCALE)
             icon.options.html = `<div class="custom-marker-icon" style="font-size: ${fontSize}px">${marker.markerData.customIcon}</div>`
           }
 
@@ -156,7 +159,7 @@ export class MarkersService {
       iconHtml = `<img src="${markerData.iconUrl}" class="custom-marker-image" style="display:block; width:100%; height:100%; object-fit:contain;">`
       iconClass += ' custom-image-marker'
     } else if (markerData.customIcon) {
-      const fontSize = Math.round(initialSize * 0.78)
+      const fontSize = Math.round(initialSize * MARKER_CONSTANTS.EMOJI_FONT_SCALE)
       iconHtml = `<div class="custom-marker-icon" style="font-size:${fontSize}px; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">${markerData.customIcon}</div>`
     } else {
       return null // Use Leaflet's default icon

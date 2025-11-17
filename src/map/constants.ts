@@ -117,3 +117,44 @@ export const MAP_CONFIG = {
     horse:   { label: 'Horse',   landSpeed: 60, seaSpeed: 120 }
   }
 } as const
+
+/**
+ * Marker rendering constants
+ * Controls how markers appear and scale on the map
+ */
+export const MARKER_CONSTANTS = {
+  // Zoom behavior
+  ZOOM_THROTTLE_MS: 100,           // Throttle marker updates during zoom (100ms)
+
+  // Icon sizing
+  ICON_SIZE_MIN: 22,               // Minimum icon size at lowest zoom (px)
+  ICON_SIZE_MAX: 140,              // Maximum icon size at highest zoom (px)
+  ZOOM_EASE_FACTOR: 1.15,          // Power curve for zoom interpolation (>1 = larger bias)
+
+  // Emoji scaling
+  EMOJI_FONT_SCALE: 0.78,          // Font size as percentage of icon size (78%)
+
+  // Default size
+  DEFAULT_ICON_SIZE: 32            // Fallback icon size (px)
+} as const
+
+/**
+ * Routing performance constants
+ * Controls debouncing and throttling for route calculations
+ */
+export const ROUTING_CONSTANTS = {
+  // Debounce timings
+  TERRAIN_REBUILD_DEBOUNCE_MS: 500,  // Wait 500ms after terrain drawing stops
+  ROUTE_UPDATE_DEBOUNCE_MS: 300,     // Wait 300ms after route changes
+
+  // Graph building
+  ROAD_ENTRY_PENALTY: 0.35,          // Cost penalty for entering road network
+  ROAD_COST_MULTIPLIER: 0.4,         // Final multiplier for road costs
+  SEA_TRAVEL_COST: 0.25,             // Cost for sea travel
+  MIN_ROAD_COST: 0.15,               // Minimum road cost after calculations
+
+  // Connection limits
+  MAX_ROAD_CONNECTIONS: 3,           // Max road connections per node
+  MAX_TERRAIN_CONNECTIONS: 4,        // Max terrain grid connections per node
+  SEARCH_RADIUS: 100                 // Radius for searching nearby nodes
+} as const
