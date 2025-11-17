@@ -206,6 +206,12 @@ export class MarkersService {
       html += `<p class="faction"><em>${faction}</em></p>`
     }
 
+    // Show port indicator
+    if (marker.isPort) {
+      const portText = this.currentLanguage === 'en' ? 'Port' : 'Liman'
+      html += `<p class="port-indicator" style="color: #2196F3; font-weight: 500;">⚓ ${portText}</p>`
+    }
+
     if (summary) {
       html += `<p>${summary}</p>`
     }
