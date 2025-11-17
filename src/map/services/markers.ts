@@ -11,10 +11,17 @@ import { eventBus } from '../utils/events'
 import { addTouchTap } from './touch-events'
 import { throttle } from '../utils/debounce'
 
+/**
+ * Extended Leaflet Marker with custom marker data
+ */
+interface CustomLeafletMarker extends LeafletMarker {
+  markerData?: Marker
+}
+
 export class MarkersService {
   private map: LeafletMap | null = null
   private markersLayer: L.LayerGroup | null = null
-  private allMarkers: Array<LeafletMarker & { markerData?: Marker }> = []
+  private allMarkers: CustomLeafletMarker[] = []
   private currentLanguage: string = 'tr'
   private unsubscribeMarkers?: () => void
 
@@ -279,12 +286,12 @@ export class MarkersService {
       const latLng = L.latLng(markerData.y, markerData.x)
       const icon = this.createMarkerIcon(markerData, iconSize)
 
-      const marker = icon
+      const marker = (icon
         ? L.marker(latLng, { icon })
-        : L.marker(latLng)
+        : L.marker(latLng)) as CustomLeafletMarker
 
       // Store marker data for later reference
-      ;(marker as any).markerData = markerData
+      marker.markerData = markerData
 
       // Add popup
       const popupContent = this.createPopupContent(markerData)
@@ -335,7 +342,7 @@ export class MarkersService {
       }
 
       // Store reference
-      this.allMarkers.push(marker as any)
+      this.allMarkers.push(marker)
 
       // Add click handler for desktop (only for non-DM mode or when popup is closed)
       marker.on('click', () => {

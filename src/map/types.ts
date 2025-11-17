@@ -1,5 +1,7 @@
 // Type definitions for Nimea map system
 
+import type * as L from 'leaflet'
+
 export interface Marker {
   id: string
   name: string
@@ -109,15 +111,26 @@ export interface TravelProfile {
   seaSpeed: number
 }
 
+/**
+ * Represents a segment of a route between two markers
+ */
+export interface RouteLeg {
+  from: Marker
+  to: Marker
+  distance: number
+  duration: number
+  path: [number, number][]
+}
+
 export interface AppState {
   isDmMode: boolean
   focusMarker: string | null
   markers: Marker[]
   terrain: TerrainCollection
   route: RouteStop[]
-  routeLegs: any[]
-  routePolylines: any[]
-  overlays: Record<string, any>
+  routeLegs: RouteLeg[]
+  routePolylines: L.Polyline[]
+  overlays: Record<string, L.LayerGroup>
   markersLayer: L.LayerGroup | null
   showMarkers: boolean
   isLiveCMS: boolean

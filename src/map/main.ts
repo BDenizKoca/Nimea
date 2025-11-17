@@ -15,6 +15,22 @@ import './services/i18n' // Initialize i18n system (imported for side effects)
 import './services/keyboard-shortcuts' // Initialize keyboard shortcuts (imported for side effects)
 import { loadingManager } from './services/loading'
 
+/**
+ * Type declarations for global window extensions
+ */
+declare global {
+  interface Window {
+    __nimea?: {
+      stores: {
+        $isDmMode: typeof $isDmMode
+        $markers: typeof $markers
+        $terrain: typeof $terrain
+      }
+      eventBus: typeof eventBus
+    }
+  }
+}
+
 console.log('🗺️  Nimea Map v2.0 - Modernized Stack')
 
 // App-level cleanup tracking
@@ -304,7 +320,7 @@ window.addEventListener('beforeunload', cleanup)
 
 // Export for debugging
 if (import.meta.env.DEV) {
-  ;(window as any).__nimea = {
+  window.__nimea = {
     stores: { $isDmMode, $markers, $terrain },
     eventBus
   }
