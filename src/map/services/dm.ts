@@ -11,6 +11,7 @@ import { DmControls } from './dm-controls'
 import { DmModals } from './dm-modals'
 import { $markers, $terrain, $isAuthenticated, markClean } from '../stores'
 import { eventBus } from '../utils/events'
+import { setupUndoRedoShortcuts, undoRedoManager } from './undo-redo'
 
 export async function initDmMode(
   map: LeafletMap,
@@ -21,6 +22,9 @@ export async function initDmMode(
 
   // Initialize Git client if available
   await initializeGitClient()
+
+  // Setup undo/redo system with keyboard shortcuts
+  setupUndoRedoShortcuts()
 
   // Add Leaflet-Geoman controls for drawing
   addGeomanControls(map)
@@ -37,7 +41,7 @@ export async function initDmMode(
   setupMapEventListeners(map, dmModals, dmControls)
   setupDmEventHandlers()
 
-  console.log('✅ DM Mode initialized')
+  console.log('✅ DM Mode initialized (Undo/Redo: Ctrl+Z / Ctrl+Shift+Z)')
   eventBus.emit('dm:ready', { map, markersService, terrainService, dmControls, dmModals })
 }
 
@@ -173,6 +177,15 @@ function setupDmEventHandlers(): void {
       message: 'Select a vertex in edit mode first',
       type: 'info'
     })
+  })
+
+  // Undo/Redo
+  eventBus.on('dm:undo', () => {
+    undoRedoManager.undo()
+  })
+
+  eventBus.on('dm:redo', () => {
+    undoRedoManager.redo()
   })
 }
 
